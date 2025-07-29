@@ -1,6 +1,8 @@
 [package]
 name = "prompts-cli"
 version = "0.1.0"
+description = "A multi-frontend CLI tool for prompt management and text generation."
+license = "MIT"
 edition = "2024"
 
 [dependencies]
