@@ -24,4 +24,5 @@ name = "prompts"
 path = "src/main.rs"
 
 [dev-dependencies]
+pty-process = "0.5.3"
 tempfile = "3.20.0"

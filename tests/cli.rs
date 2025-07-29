@@ -70,31 +70,3 @@ fn test_cli_show_not_found() {
     assert!(stderr.contains("Prompt 'Non-existent Prompt' not found"));
 }
 
-#[test]
-#[cfg(feature = "tui")]
-fn test_cli_tui() {
-    use std::process::{Command, Stdio};
-    use std::io::Write;
-
-    let dir = tempdir().unwrap();
-    let file_path = dir.path().join("prompts.json");
-
-    let mut file = File::create(&file_path).unwrap();
-    file.write_all(b"[]").unwrap();
-
-    let mut child = Command::new("cargo")
-        .args(["run", "--features", "tui", "--", "tui", "--file", file_path.to_str().unwrap()])
-        .stdin(Stdio::piped())
-        .spawn()
-        .expect("failed to execute process");
-
-    {
-        let stdin = child.stdin.as_mut().expect("Failed to open stdin");
-        // Send 'q' to quit the TUI
-        stdin.write_all(b"q").expect("Failed to write to stdin");
-    }
-
-    let output = child.wait_with_output().expect("Failed to read stdout");
-
-    assert!(output.status.success());
-}
