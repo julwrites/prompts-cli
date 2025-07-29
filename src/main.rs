@@ -1,5 +1,5 @@
 use clap::Parser;
-use prompts_core::{load_prompts, Prompt};
+use prompts_core::load_prompts;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
