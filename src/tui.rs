@@ -15,6 +15,7 @@ use prompts_core::{load_prompts, Prompt};
 enum InputMode {
     Normal,
     Editing,
+    Generating,
 }
 
 struct TuiApp {
@@ -23,6 +24,7 @@ struct TuiApp {
     input_mode: InputMode,
     selected_prompt_text: String,
     cursor_position: usize,
+    generated_text: String,
 }
 
 impl TuiApp {
@@ -37,6 +39,7 @@ impl TuiApp {
             input_mode: InputMode::Normal,
             selected_prompt_text: String::new(),
             cursor_position: 0,
+            generated_text: String::new(),
         };
         app.update_selected_prompt_text();
         app
@@ -133,6 +136,16 @@ impl TuiApp {
     fn reset_cursor(&mut self) {
         self.cursor_position = 0;
     }
+
+    fn generate_text(&mut self) {
+        if let Some(selected) = self.list_state.selected() {
+            let prompt = &self.prompts[selected];
+            self.generated_text = format!("Generated text for '{}': {}\n(This is a placeholder)", prompt.name, prompt.text);
+        } else {
+            self.generated_text = "No prompt selected for generation.".to_string();
+        }
+        self.input_mode = InputMode::Generating;
+    }
 }
 
 pub fn run(file: &str) -> Result<()> {
@@ -184,6 +197,10 @@ fn ui(frame: &mut ratatui::Frame, app: &mut TuiApp) {
     let prompt_text = Paragraph::new(app.selected_prompt_text.clone())
         .block(prompt_text_block.clone());
 
+    let generated_text_block = Block::default().title("Generated Text").borders(Borders::ALL);
+    let generated_text = Paragraph::new(app.generated_text.clone())
+        .block(generated_text_block.clone());
+
     let chunks = ratatui::prelude::Layout::default()
         .direction(ratatui::prelude::Direction::Horizontal)
         .constraints([
@@ -193,15 +210,19 @@ fn ui(frame: &mut ratatui::Frame, app: &mut TuiApp) {
         .split(frame.size());
 
     frame.render_stateful_widget(list, chunks[0], &mut app.list_state);
-    frame.render_widget(prompt_text, chunks[1]);
 
     match app.input_mode {
-        InputMode::Normal => {},
-        InputMode::Editing => {
-            frame.set_cursor(
-                chunks[1].x + app.cursor_position as u16 + prompt_text_block.inner(chunks[1]).x,
-                chunks[1].y + prompt_text_block.inner(chunks[1]).y,
-            );
+        InputMode::Normal | InputMode::Editing => {
+            frame.render_widget(prompt_text, chunks[1]);
+            if let InputMode::Editing = app.input_mode {
+                frame.set_cursor(
+                    chunks[1].x + app.cursor_position as u16 + prompt_text_block.inner(chunks[1]).x,
+                    chunks[1].y + prompt_text_block.inner(chunks[1]).y,
+                );
+            }
+        },
+        InputMode::Generating => {
+            frame.render_widget(generated_text, chunks[1]);
         }
     }
 }
@@ -215,6 +236,7 @@ fn handle_events(app: &mut TuiApp) -> Result<bool> {
                     KeyCode::Down => app.next(),
                     KeyCode::Up => app.previous(),
                     KeyCode::Char('e') => app.enter_editing_mode(),
+                    KeyCode::Char('g') => app.generate_text(),
                     _ => {},
                 },
                 InputMode::Editing => match key.code {
@@ -226,6 +248,12 @@ fn handle_events(app: &mut TuiApp) -> Result<bool> {
                     KeyCode::Char(to_insert) => {
                         app.enter_char(to_insert);
                     }
+                    _ => {},
+                },
+                InputMode::Generating => match key.code {
+                    KeyCode::Esc => {
+                        app.input_mode = InputMode::Normal;
+                    },
                     _ => {},
                 },
             }

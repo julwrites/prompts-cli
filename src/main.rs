@@ -32,6 +32,15 @@ enum Commands {
         #[arg(short, long)]
         file: String,
     },
+    /// Generates text based on a prompt
+    Generate {
+        /// The name of the prompt to use for generation
+        name: String,
+
+        /// The path to the prompts file
+        #[arg(short, long)]
+        file: String,
+    },
 }
 
 #[cfg(feature = "tui")]
@@ -58,6 +67,15 @@ fn main() -> anyhow::Result<()> {
         #[cfg(feature = "tui")]
         Commands::Tui { file } => {
             tui::run(file)?;
+        }
+        Commands::Generate { name, file } => {
+            let prompts = load_prompts(file)?;
+            if let Some(prompt) = prompts.iter().find(|p| p.name == *name) {
+                // Placeholder for actual text generation
+                println!("Generated text for '{}': {}\n(This is a placeholder)", prompt.name, prompt.text);
+            } else {
+                anyhow::bail!("Prompt '{}' not found", name);
+            }
         }
     }
 
