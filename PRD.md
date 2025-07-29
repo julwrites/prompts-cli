@@ -4,7 +4,7 @@ This document outlines the requirements for developing a multi-frontend CLI tool
 
 ## Executive Summary
 
-The Prompts project consists of two complementary repositories: a core Rust CLI application (`julwrites/prompts`) providing multiple frontend interfaces, and a Neovim plugin (`julwrites/prompts-nvim`) that integrates with the installed CLI tool[1][2]. This architecture enables developers to access prompt management functionality across multiple interfaces while maintaining consistency and performance.
+The Prompts project consists of two complementary repositories: a core Rust CLI application (`julwrites/prompts-cli`) providing multiple frontend interfaces, and a Neovim plugin (`julwrites/prompts-nvim`) that integrates with the installed CLI tool[1][2]. This architecture enables developers to access prompt management functionality across multiple interfaces while maintaining consistency and performance.
 
 ## Product Overview
 
@@ -19,6 +19,14 @@ The Prompts tool addresses this challenge by providing a modular architecture wi
 - Terminal User Interface (TUI) for interactive workflows[5][6]
 - Tauri desktop application for rich graphical interactions[7][8]
 - Neovim integration for seamless editor-based functionality[9][10]
+
+### Current Status
+
+As of today, the core CLI and TUI frontends are largely implemented. The project includes:
+- **Core Rust Library (`prompts_core`):** Defines `Prompt` structure, `load_prompts` function, and an extensible `TextGenerator` trait with `MockTextGenerator` and `LLMTextGenerator` (placeholder) implementations.
+- **Command-Line Interface (CLI):** Implements `list`, `show`, and `generate` subcommands. The `generate` subcommand supports selecting between mock and LLM (placeholder) backends.
+- **Terminal User Interface (TUI):** Provides an interactive interface for browsing, selecting, editing, and previewing generated text for prompts. It integrates with the `TextGenerator` trait.
+- **Continuous Integration/Continuous Deployment (CI/CD):** GitHub Actions are configured for cross-platform testing (Linux, macOS, Windows) and automated publishing to `crates.io` upon merge to `main`.
 
 ### Target Audience
 
