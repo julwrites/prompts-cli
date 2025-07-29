@@ -13,7 +13,7 @@ crossterm = { version = "0.27.0", optional = true }
 ratatui = { version = "0.26.0", optional = true }
 
 [features]
-tui = ["dep:crossterm", "dep:ratatui"]
+tui = ["dep:crossterm", "dep:ratatui", "dep:pty-process"]
 
 [lib]
 name = "prompts_core"
@@ -26,3 +26,4 @@ path = "src/main.rs"
 [dev-dependencies]
 pty-process = "0.5.3"
 tempfile = "3.20.0"
+pty-process = { version = "0.5.3", optional = true }
