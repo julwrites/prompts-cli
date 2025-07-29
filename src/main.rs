@@ -6,10 +6,6 @@ use prompts_core::{load_prompts, MockTextGenerator, TextGenerator, LLMTextGenera
 struct Cli {
     #[command(subcommand)]
     command: Commands,
-
-    /// Choose the text generation backend
-    #[arg(long, value_enum, default_value_t = GeneratorType::Mock)]
-    generator: GeneratorType,
 }
 
 #[derive(Parser, Debug)]
@@ -44,6 +40,10 @@ enum Commands {
         /// The path to the prompts file
         #[arg(short, long)]
         file: String,
+
+        /// Choose the text generation backend
+        #[arg(long, value_enum, default_value_t = GeneratorType::Mock)]
+        generator: GeneratorType,
     },
 }
 
@@ -71,12 +71,12 @@ async fn main() -> anyhow::Result<()> {
         }
         #[cfg(feature = "tui")]
         Commands::Tui { file } => {
-            tui::run(file, cli.generator).await?;
+            tui::run(file).await?;
         }
-        Commands::Generate { name, file } => {
+        Commands::Generate { name, file, generator } => {
             let prompts = load_prompts(file)?;
             if let Some(prompt) = prompts.iter().find(|p| p.name == *name) {
-                let generated_text = match cli.generator {
+                let generated_text = match generator {
                     GeneratorType::Mock => {
                         let generator = MockTextGenerator;
                         generator.generate(&prompt.text).await

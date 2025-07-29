@@ -10,7 +10,7 @@ use ratatui::{
     style::{Style, Modifier, Color},
 };
 use std::io;
-use prompts_core::{load_prompts, Prompt, MockTextGenerator, TextGenerator, LLMTextGenerator, GeneratorType};
+use prompts_core::{load_prompts, Prompt, MockTextGenerator, TextGenerator};
 
 enum InputMode {
     Normal,
@@ -25,11 +25,10 @@ struct TuiApp {
     selected_prompt_text: String,
     cursor_position: usize,
     generated_text: String,
-    generator_type: GeneratorType,
 }
 
 impl TuiApp {
-    fn new(prompts: Vec<Prompt>, generator_type: GeneratorType) -> TuiApp {
+    fn new(prompts: Vec<Prompt>) -> TuiApp {
         let mut list_state = ListState::default();
         if !prompts.is_empty() {
             list_state.select(Some(0));
@@ -41,7 +40,6 @@ impl TuiApp {
             selected_prompt_text: String::new(),
             cursor_position: 0,
             generated_text: String::new(),
-            generator_type,
         };
         app.update_selected_prompt_text();
         app
@@ -142,16 +140,7 @@ impl TuiApp {
     async fn generate_text(&mut self) {
         if let Some(selected) = self.list_state.selected() {
             let prompt = &self.prompts[selected];
-            let generated = match self.generator_type {
-                GeneratorType::Mock => {
-                    let generator = MockTextGenerator;
-                    generator.generate(&prompt.text).await
-                }
-                GeneratorType::Llm => {
-                    let generator = LLMTextGenerator;
-                    generator.generate(&prompt.text).await
-                }
-            };
+            let generated = MockTextGenerator.generate(&prompt.text).await;
             self.generated_text = generated;
         } else {
             self.generated_text = "No prompt selected for generation.".to_string();
@@ -160,9 +149,9 @@ impl TuiApp {
     }
 }
 
-pub async fn run(file: &str, generator_type: prompts_core::GeneratorType) -> Result<()> {
+pub async fn run(file: &str) -> Result<()> {
     let prompts = load_prompts(file)?;
-    let mut app = TuiApp::new(prompts, generator_type);
+    let mut app = TuiApp::new(prompts);
 
     let mut terminal = setup_terminal()?;
     let mut should_quit = false;
