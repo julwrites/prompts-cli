@@ -16,6 +16,15 @@ enum Commands {
         #[arg(short, long)]
         file: String,
     },
+    /// Shows a specific prompt
+    Show {
+        /// The name of the prompt to show
+        name: String,
+
+        /// The path to the prompts file
+        #[arg(short, long)]
+        file: String,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -28,8 +37,15 @@ fn main() -> anyhow::Result<()> {
                 println!("{}: {}", prompt.name, prompt.text);
             }
         }
+        Commands::Show { name, file } => {
+            let prompts = load_prompts(file)?;
+            if let Some(prompt) = prompts.iter().find(|p| p.name == *name) {
+                println!("{}", prompt.text);
+            } else {
+                anyhow::bail!("Prompt '{}' not found", name);
+            }
+        }
     }
 
     Ok(())
 }
-
