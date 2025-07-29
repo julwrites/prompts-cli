@@ -25,7 +25,17 @@ enum Commands {
         #[arg(short, long)]
         file: String,
     },
+    #[cfg(feature = "tui")]
+    /// Starts the interactive TUI
+    Tui {
+        /// The path to the prompts file
+        #[arg(short, long)]
+        file: String,
+    },
 }
+
+#[cfg(feature = "tui")]
+mod tui;
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
@@ -44,6 +54,10 @@ fn main() -> anyhow::Result<()> {
             } else {
                 anyhow::bail!("Prompt '{}' not found", name);
             }
+        }
+        #[cfg(feature = "tui")]
+        Commands::Tui { file } => {
+            tui::run(file)?;
         }
     }
 
