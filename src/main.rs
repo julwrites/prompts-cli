@@ -1,5 +1,5 @@
 use clap::Parser;
-use prompts_core::load_prompts;
+use prompts_core::{load_prompts, MockTextGenerator, TextGenerator};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -71,8 +71,8 @@ fn main() -> anyhow::Result<()> {
         Commands::Generate { name, file } => {
             let prompts = load_prompts(file)?;
             if let Some(prompt) = prompts.iter().find(|p| p.name == *name) {
-                // Placeholder for actual text generation
-                println!("Generated text for '{}': {}\n(This is a placeholder)", prompt.name, prompt.text);
+                let generator = MockTextGenerator;
+                println!("{}", generator.generate(&prompt.text));
             } else {
                 anyhow::bail!("Prompt '{}' not found", name);
             }

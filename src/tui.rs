@@ -10,7 +10,7 @@ use ratatui::{
     style::{Style, Modifier, Color},
 };
 use std::io;
-use prompts_core::{load_prompts, Prompt};
+use prompts_core::{load_prompts, Prompt, MockTextGenerator, TextGenerator};
 
 enum InputMode {
     Normal,
@@ -140,7 +140,8 @@ impl TuiApp {
     fn generate_text(&mut self) {
         if let Some(selected) = self.list_state.selected() {
             let prompt = &self.prompts[selected];
-            self.generated_text = format!("Generated text for '{}': {}\n(This is a placeholder)", prompt.name, prompt.text);
+            let generator = MockTextGenerator;
+            self.generated_text = generator.generate(&prompt.text);
         } else {
             self.generated_text = "No prompt selected for generation.".to_string();
         }
