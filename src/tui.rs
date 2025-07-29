@@ -5,17 +5,19 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{
-    prelude::{CrosstermBackend, Stylize, Terminal},
-    widgets::{Block, Borders, Paragraph},
+    prelude::{CrosstermBackend, Terminal},
+    widgets::{Block, Borders, List, ListItem},
 };
 use std::io;
+use prompts_core::{load_prompts, Prompt};
 
 pub fn run(file: &str) -> Result<()> {
+    let prompts = load_prompts(file)?;
     let mut terminal = setup_terminal()?;
     let mut should_quit = false;
 
     while !should_quit {
-        terminal.draw(ui)?;
+        terminal.draw(|frame| ui(frame, &prompts))?;
         should_quit = handle_events()?;
     }
 
@@ -41,12 +43,16 @@ fn restore_terminal() -> Result<()> {
     Ok(())
 }
 
-fn ui(frame: &mut ratatui::Frame) {
-    frame.render_widget(
-        Paragraph::new("Hello, TUI!")
-            .block(Block::default().title("Prompts").borders(Borders::ALL)),
-        frame.size(),
-    );
+fn ui(frame: &mut ratatui::Frame, prompts: &[Prompt]) {
+    let items: Vec<ListItem> = prompts
+        .iter()
+        .map(|p| ListItem::new(p.name.clone()))
+        .collect();
+
+    let list = List::new(items)
+        .block(Block::default().title("Prompts").borders(Borders::ALL));
+
+    frame.render_widget(list, frame.size());
 }
 
 fn handle_events() -> Result<bool> {
