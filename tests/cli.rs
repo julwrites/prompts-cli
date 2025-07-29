@@ -68,8 +68,8 @@ fn test_cli_generate() {
     let mut file = File::create(&file_path).unwrap();
     file.write_all(b"[\n  {\n    \"name\": \"Test Prompt\",\n    \"text\": \"This is a test prompt.\"\n  }\n]").unwrap();
 
-    let output = Command::new(env!("CARGO_BIN_EXE_prompts"))
-        .args(["generate", "Test Prompt", "--file", file_path.to_str().unwrap(), "--generator", "mock"])
+    let output = Command::new("cargo")
+        .args(["run", "--", "generate", "Test Prompt", "--file", file_path.to_str().unwrap(), "--generator", "mock"])
         .output()
         .expect("failed to execute process");
 
