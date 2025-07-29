@@ -1,0 +1,10 @@
+[
+  {
+    "name": "Greeting",
+    "text": "Hello, how are you?"
+  },
+  {
+    "name": "Farewell",
+    "text": "Goodbye, see you soon!"
+  }
+]
