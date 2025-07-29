@@ -22,6 +22,7 @@ struct TuiApp {
     list_state: ListState,
     input_mode: InputMode,
     selected_prompt_text: String,
+    cursor_position: usize,
 }
 
 impl TuiApp {
@@ -30,12 +31,15 @@ impl TuiApp {
         if !prompts.is_empty() {
             list_state.select(Some(0));
         }
-        TuiApp {
+        let mut app = TuiApp {
             prompts,
             list_state,
             input_mode: InputMode::Normal,
             selected_prompt_text: String::new(),
-        }
+            cursor_position: 0,
+        };
+        app.update_selected_prompt_text();
+        app
     }
 
     fn next(&mut self) {
@@ -71,16 +75,69 @@ impl TuiApp {
     fn update_selected_prompt_text(&mut self) {
         if let Some(selected) = self.list_state.selected() {
             self.selected_prompt_text = self.prompts[selected].text.clone();
+            self.cursor_position = self.selected_prompt_text.len();
         } else {
             self.selected_prompt_text = String::new();
+            self.cursor_position = 0;
         }
+    }
+
+    fn enter_editing_mode(&mut self) {
+        self.input_mode = InputMode::Editing;
+    }
+
+    fn exit_editing_mode(&mut self) {
+        if let Some(selected) = self.list_state.selected() {
+            self.prompts[selected].text = self.selected_prompt_text.clone();
+        }
+        self.input_mode = InputMode::Normal;
+    }
+
+    fn discard_editing_mode(&mut self) {
+        self.update_selected_prompt_text(); // Revert changes
+        self.input_mode = InputMode::Normal;
+    }
+
+    fn move_cursor_left(&mut self) {
+        let cursor_moved_left = self.cursor_position.saturating_sub(1);
+        self.cursor_position = self.clamp_cursor(cursor_moved_left);
+    }
+
+    fn move_cursor_right(&mut self) {
+        let cursor_moved_right = self.cursor_position.saturating_add(1);
+        self.cursor_position = self.clamp_cursor(cursor_moved_right);
+    }
+
+    fn enter_char(&mut self, new_char: char) {
+        self.selected_prompt_text.insert(self.cursor_position, new_char);
+        self.move_cursor_right();
+    }
+
+    fn delete_char(&mut self) {
+        let is_not_cursor_leftmost = self.cursor_position != 0;
+        if is_not_cursor_leftmost {
+            // `drain` does not `panic` if the index is out of bounds. 
+            // `saturating_sub` makes sure that `from` is always at least `0`
+            let current_index = self.cursor_position;
+            let from = current_index.saturating_sub(1);
+            let to = current_index;
+            self.selected_prompt_text.drain(from..to);
+            self.move_cursor_left();
+        }
+    }
+
+    fn clamp_cursor(&self, new_cursor_pos: usize) -> usize {
+        new_cursor_pos.clamp(0, self.selected_prompt_text.len())
+    }
+
+    fn reset_cursor(&mut self) {
+        self.cursor_position = 0;
     }
 }
 
 pub fn run(file: &str) -> Result<()> {
     let prompts = load_prompts(file)?;
     let mut app = TuiApp::new(prompts);
-    app.update_selected_prompt_text();
 
     let mut terminal = setup_terminal()?;
     let mut should_quit = false;
@@ -123,8 +180,9 @@ fn ui(frame: &mut ratatui::Frame, app: &mut TuiApp) {
         .highlight_style(Style::default().add_modifier(Modifier::BOLD).fg(Color::Green))
         .highlight_symbol("> ");
 
+    let prompt_text_block = Block::default().title("Prompt Text").borders(Borders::ALL);
     let prompt_text = Paragraph::new(app.selected_prompt_text.clone())
-        .block(Block::default().title("Prompt Text").borders(Borders::ALL));
+        .block(prompt_text_block.clone());
 
     let chunks = ratatui::prelude::Layout::default()
         .direction(ratatui::prelude::Direction::Horizontal)
@@ -136,6 +194,16 @@ fn ui(frame: &mut ratatui::Frame, app: &mut TuiApp) {
 
     frame.render_stateful_widget(list, chunks[0], &mut app.list_state);
     frame.render_widget(prompt_text, chunks[1]);
+
+    match app.input_mode {
+        InputMode::Normal => {},
+        InputMode::Editing => {
+            frame.set_cursor(
+                chunks[1].x + app.cursor_position as u16 + prompt_text_block.inner(chunks[1]).x,
+                chunks[1].y + prompt_text_block.inner(chunks[1]).y,
+            );
+        }
+    }
 }
 
 fn handle_events(app: &mut TuiApp) -> Result<bool> {
@@ -146,11 +214,20 @@ fn handle_events(app: &mut TuiApp) -> Result<bool> {
                     KeyCode::Char('q') => return Ok(true),
                     KeyCode::Down => app.next(),
                     KeyCode::Up => app.previous(),
+                    KeyCode::Char('e') => app.enter_editing_mode(),
                     _ => {},
                 },
-                InputMode::Editing => {
-                    // Handle editing mode input here later
-                }
+                InputMode::Editing => match key.code {
+                    KeyCode::Enter => app.exit_editing_mode(),
+                    KeyCode::Esc => app.discard_editing_mode(),
+                    KeyCode::Left => app.move_cursor_left(),
+                    KeyCode::Right => app.move_cursor_right(),
+                    KeyCode::Backspace => app.delete_char(),
+                    KeyCode::Char(to_insert) => {
+                        app.enter_char(to_insert);
+                    }
+                    _ => {},
+                },
             }
         }
     }
