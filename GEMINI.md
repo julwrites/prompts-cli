@@ -4,7 +4,7 @@ This document guides the development of the Prompts CLI tool, a multi-frontend R
 
 ## Project Overview
 
-The project is a Rust-based CLI tool with multiple frontends (CLI, TUI, Tauri, Neovim plugin). The core logic is in the `prompts` crate, and each frontend is a separate crate that uses the core crate. This allows for a modular and maintainable architecture.
+The project is a Rust-based CLI tool with multiple frontends (CLI, TUI, Tauri, Neovim plugin). The core logic is in the `prompts-cli` crate, and each frontend is a separate crate that uses the core crate. This allows for a modular and maintainable architecture.
 
 ## Core Tenets
 

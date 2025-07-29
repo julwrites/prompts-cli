@@ -1,5 +1,5 @@
 [package]
-name = "prompts"
+name = "prompts-cli"
 version = "0.1.0"
 edition = "2024"
 
@@ -22,7 +22,7 @@ name = "prompts_core"
 path = "src/lib.rs"
 
 [[bin]]
-name = "prompts"
+name = "prompts-cli"
 path = "src/main.rs"
 
 [dev-dependencies]
