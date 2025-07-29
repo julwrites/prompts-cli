@@ -11,6 +11,7 @@ serde_json = "1.0.141"
 thiserror = "2.0.12"
 crossterm = { version = "0.27.0", optional = true }
 ratatui = { version = "0.26.0", optional = true }
+pty-process = { version = "0.5.3", optional = true }
 
 [features]
 tui = ["dep:crossterm", "dep:ratatui", "dep:pty-process"]
