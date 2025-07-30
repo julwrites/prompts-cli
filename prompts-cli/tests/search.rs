@@ -1,47 +1,48 @@
-use prompts_cli::{load_prompts, search_prompts, Prompt};
-use std::io::Write;
-use tempfile::NamedTempFile;
+use prompts_cli::{search_prompts, Prompt};
 
 #[test]
-fn test_search_prompts() -> Result<(), Box<dyn std::error::Error>> {
-    let mut file = NamedTempFile::new()?;
-    writeln!(file, r#"[
-  {{
-    "name": "Prompt One",
-    "text": "This is the first prompt.",
-    "tags": ["tagA", "tagB"],
-    "categories": ["catX"]
-  }},
-  {{
-    "name": "Prompt Two",
-    "text": "Second prompt here.",
-    "tags": ["tagB", "tagC"],
-    "categories": ["catY"]
-  }},
-  {{
-    "name": "Another Prompt",
-    "text": "A third one for testing.",
-    "tags": ["tagA"],
-    "categories": ["catX", "catZ"]
-  }}
-]"#)?;
+fn test_fuzzy_search_prompts() {
+    let prompts = vec![
+        Prompt {
+            hash: "1".to_string(),
+            text: "This is the first prompt.".to_string(),
+            tags: vec!["tagA".to_string(), "tagB".to_string()],
+            categories: vec!["catX".to_string()],
+        },
+        Prompt {
+            hash: "2".to_string(),
+            text: "Second prompt here.".to_string(),
+            tags: vec!["tagB".to_string(), "tagC".to_string()],
+            categories: vec!["catY".to_string()],
+        },
+        Prompt {
+            hash: "3".to_string(),
+            text: "A third one for testing.".to_string(),
+            tags: vec!["tagA".to_string()],
+            categories: vec!["catX".to_string(), "catZ".to_string()],
+        },
+    ];
 
-    let prompts = load_prompts(file.path().to_str().unwrap())?;
-
-    // Test search by query
-    let results = search_prompts(&prompts, "first", &[], &[]);
+    // Test fuzzy search by query
+    let results = search_prompts(&prompts, "frst prmpt", &[], &[]);
     assert_eq!(results.len(), 1);
-    assert_eq!(results[0].name, "Prompt One");
+    assert_eq!(results[0].text, "This is the first prompt.");
+
+    // Test fuzzy search with no good match
+    let results = search_prompts(&prompts, "xyz", &[], &[]);
+    assert_eq!(results.len(), 0);
 
     // Test search by tag
     let results = search_prompts(&prompts, "", &["tagC".to_string()], &[]);
     assert_eq!(results.len(), 1);
-    assert_eq!(results[0].name, "Prompt Two");
+    assert_eq!(results[0].text, "Second prompt here.");
 
-    // Test search by category and query
-    let results = search_prompts(&prompts, "third", &[], &["catX".to_string()]);
+    // Test search by category and fuzzy query
+    let results = search_prompts(&prompts, "thrd tst", &[], &["catX".to_string()]);
     assert_eq!(results.len(), 1);
-    assert_eq!(results[0].name, "Another Prompt");
+    assert_eq!(results[0].text, "A third one for testing.");
 
-    Ok(())
+    // Test filtering that results in no matches
+    let results = search_prompts(&prompts, "", &["tagD".to_string()], &[]);
+    assert_eq!(results.len(), 0);
 }
