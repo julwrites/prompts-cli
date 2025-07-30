@@ -1,15 +1,17 @@
 use clap::Parser;
 use prompts_cli::{
-    GeneratorType, LLMTextGenerator, MockTextGenerator, Prompt, TextGenerator, load_prompts,
-    save_prompts,
+    search_prompts, GeneratorType, LLMTextGenerator, MockTextGenerator, Prompt, Storage,
+    TextGenerator,
 };
+use std::io::{self, Read};
+use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Cli {
-    /// The path to the prompts file
+    /// The path to the prompts storage directory
     #[arg(short, long)]
-    file: String,
+    config: Option<PathBuf>,
     #[command(subcommand)]
     command: Commands,
 }
@@ -20,24 +22,22 @@ enum Commands {
     List,
     /// Shows a specific prompt
     Show {
-        /// The name of the prompt to show
-        name: String,
+        /// The fuzzy query to search for a prompt
+        query: Option<String>,
     },
 
     /// Generates text based on a prompt
     Generate {
-        /// The name of the prompt to use for generation
-        name: String,
+        /// The fuzzy query to search for a prompt
+        query: Option<String>,
         /// Choose the text generation backend
         #[arg(long, value_enum, default_value_t = GeneratorType::Mock)]
         generator: GeneratorType,
     },
     /// Adds a new prompt
     Add {
-        /// The name of the prompt
-        name: String,
         /// The text content of the prompt
-        text: String,
+        text: Option<String>,
         /// Tags for the prompt (comma-separated)
         #[arg(short, long, value_delimiter = ',')]
         tags: Vec<String>,
@@ -45,22 +45,10 @@ enum Commands {
         #[arg(short, long, value_delimiter = ',')]
         categories: Vec<String>,
     },
-    /// Searches for prompts by name, text, tags, or categories
-    Search {
-        /// The search query string
-        #[arg(short, long)]
-        query: Option<String>,
-        /// Tags to filter by (comma-separated)
-        #[arg(short, long, value_delimiter = ',')]
-        tags: Vec<String>,
-        /// Categories to filter by (comma-separated)
-        #[arg(short, long, value_delimiter = ',')]
-        categories: Vec<String>,
-    },
     /// Edits an existing prompt
     Edit {
-        /// The name of the prompt to edit
-        name: String,
+        /// The fuzzy query to search for a prompt
+        query: Option<String>,
         /// The new text content of the prompt
         #[arg(short, long)]
         text: Option<String>,
@@ -73,38 +61,55 @@ enum Commands {
     },
     /// Deletes a prompt
     Delete {
-        /// The name of the prompt to delete
-        name: String,
+        /// The fuzzy query to search for a prompt
+        query: Option<String>,
     },
 }
 
-#[tokio::main]
+fn get_input(input: Option<String>, prompt_message: &str) -> anyhow::Result<String> {
+    match input {
+        Some(text) => Ok(text),
+        None => {
+            println!("{}", prompt_message);
+            let mut buffer = String::new();
+            io::stdin().read_to_string(&mut buffer)?;
+            Ok(buffer.trim().to_string())
+        }
+    }
+}
 
+#[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
+    let storage = Storage::new(cli.config)?;
 
     match &cli.command {
         Commands::List => {
-            let prompts = load_prompts(&cli.file)?;
+            let prompts = storage.load_prompts()?;
             for prompt in prompts {
-                println!("{}: {}", prompt.name, prompt.text);
+                println!("{} - {}", &prompt.hash[..12], prompt.text);
             }
         }
-        Commands::Show { name } => {
-            let prompts = load_prompts(&cli.file)?;
-            if let Some(prompt) = prompts.iter().find(|p| p.name == *name) {
-                println!("{}", prompt.text);
+        Commands::Show { query } => {
+            let query = get_input(query.clone(), "Enter a query to search for a prompt:")?;
+            let prompts = storage.load_prompts()?;
+            let search_results = search_prompts(&prompts, &query, &[], &[]);
+
+            if search_results.len() == 1 {
+                println!("{}", search_results[0].text);
             } else {
-                anyhow::bail!("Prompt '{}' not found", name);
+                let result_json = serde_json::to_string_pretty(&search_results)?;
+                println!("{}", result_json);
             }
         }
 
-        Commands::Generate {
-            name,
-            generator,
-        } => {
-            let prompts = load_prompts(&cli.file)?;
-            if let Some(prompt) = prompts.iter().find(|p| p.name == *name) {
+        Commands::Generate { query, generator } => {
+            let query = get_input(query.clone(), "Enter a query to search for a prompt:")?;
+            let prompts = storage.load_prompts()?;
+            let search_results = search_prompts(&prompts, &query, &[], &[]);
+
+            if search_results.len() == 1 {
+                let prompt = search_results[0];
                 let generated_text = match generator {
                     GeneratorType::Mock => {
                         let generator = MockTextGenerator;
@@ -117,84 +122,66 @@ async fn main() -> anyhow::Result<()> {
                 };
                 println!("{}", generated_text);
             } else {
-                anyhow::bail!("Prompt '{}' not found", name);
+                let result_json = serde_json::to_string_pretty(&search_results)?;
+                println!("{}", result_json);
             }
         }
         Commands::Add {
-            name,
             text,
             tags,
             categories,
         } => {
-            let mut prompts = load_prompts(&cli.file).unwrap_or_else(|_| Vec::new());
-            if prompts.iter().any(|p| p.name == *name) {
-                anyhow::bail!("Prompt '{}' already exists", name);
-            }
-            prompts.push(Prompt {
-                name: name.clone(),
-                text: text.clone(),
+            let text = get_input(text.clone(), "Enter the prompt text:")?;
+            let mut prompt = Prompt {
+                hash: "".to_string(),
+                text,
                 tags: tags.clone(),
                 categories: categories.clone(),
-            });
-            save_prompts(&cli.file, &prompts)?;
-            println!("Prompt '{}' added successfully.", name);
-        }
-        Commands::Search {
-            query,
-            tags,
-            categories,
-        } => {
-            let prompts = load_prompts(&cli.file)?;
-            let search_results = prompts_cli::search_prompts(
-                &prompts,
-                query.as_deref().unwrap_or(""),
-                &tags,
-                &categories,
-            );
-
-            if search_results.is_empty() {
-                println!("No prompts found matching your criteria.");
-            } else {
-                for prompt in search_results {
-                    println!(
-                        "Name: {}\nText: {}\nTags: {:?}\nCategories: {:?}\n---",
-                        prompt.name, prompt.text, prompt.tags, prompt.categories
-                    );
-                }
-            }
+            };
+            storage.save_prompt(&mut prompt)?;
+            println!("Prompt added successfully with hash: {}", &prompt.hash[..12]);
         }
         Commands::Edit {
-            name,
+            query,
             text,
             tags,
             categories,
         } => {
-            let mut prompts = load_prompts(&cli.file)?;
-            if let Some(prompt) = prompts.iter_mut().find(|p| p.name == *name) {
-                if let Some(new_text) = text {
-                    prompt.text = new_text.clone();
-                }
-                if let Some(new_tags) = tags {
-                    prompt.tags = new_tags.clone();
-                }
-                if let Some(new_categories) = categories {
-                    prompt.categories = new_categories.clone();
-                }
-                save_prompts(&cli.file, &prompts)?;
-                println!("Prompt '{}' updated successfully.", name);
+            let query = get_input(query.clone(), "Enter a query to find the prompt to edit:")?;
+            let prompts = storage.load_prompts()?;
+            let search_results = search_prompts(&prompts, &query, &[], &[]);
+
+            if search_results.len() == 1 {
+                let old_prompt = search_results[0];
+                storage.delete_prompt(&old_prompt.hash)?;
+
+                let mut new_prompt = Prompt {
+                    hash: "".to_string(),
+                    text: text.clone().unwrap_or_else(|| old_prompt.text.clone()),
+                    tags: tags.clone().unwrap_or_else(|| old_prompt.tags.clone()),
+                    categories: categories
+                        .clone()
+                        .unwrap_or_else(|| old_prompt.categories.clone()),
+                };
+                storage.save_prompt(&mut new_prompt)?;
+                println!("Prompt {} updated to {}", &old_prompt.hash[..12], &new_prompt.hash[..12]);
             } else {
-                anyhow::bail!("Prompt '{}' not found", name);
+                let result_json = serde_json::to_string_pretty(&search_results)?;
+                println!("{}", result_json);
             }
         }
-        Commands::Delete { name } => {
-            let mut prompts = load_prompts(&cli.file)?;
-            let initial_len = prompts.len();
-            prompts.retain(|p| p.name != *name);
-            if prompts.len() < initial_len {
-                save_prompts(&cli.file, &prompts)?;
-                println!("Prompt '{}' deleted successfully.", name);
+        Commands::Delete { query } => {
+            let query = get_input(query.clone(), "Enter a query to find the prompt to delete:")?;
+            let prompts = storage.load_prompts()?;
+            let search_results = search_prompts(&prompts, &query, &[], &[]);
+
+            if search_results.len() == 1 {
+                let prompt = search_results[0];
+                storage.delete_prompt(&prompt.hash)?;
+                println!("Prompt {} deleted successfully.", &prompt.hash[..12]);
             } else {
-                anyhow::bail!("Prompt '{}' not found", name);
+                let result_json = serde_json::to_string_pretty(&search_results)?;
+                println!("{}", result_json);
             }
         }
     }
