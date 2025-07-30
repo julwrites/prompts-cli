@@ -10,14 +10,17 @@ use ratatui::{
     widgets::{Paragraph, Wrap},
 };
 
-pub fn run_tui() -> anyhow::Result<()> {
+pub fn run_tui(prompts: Vec<Prompt>) -> anyhow::Result<()> {
+    let mut app = App::new(prompts);
+    app.state.select(Some(0));
+
     enable_raw_mode()?;
     stdout().execute(EnterAlternateScreen)?;
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
 
     let mut should_quit = false;
     while !should_quit {
-        terminal.draw(ui)?;
+        terminal.draw(|f| ui(f, &mut app))?;
         should_quit = handle_events()?;
     }
 

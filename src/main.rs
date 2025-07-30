@@ -148,8 +148,7 @@ async fn main() -> anyhow::Result<()> {
             }
         }
         Commands::Tui => {
-            let prompts = load_prompts(&cli.file)?;
-            run_tui(prompts)?;
+            run_tui(&cli.file)?;
         }
     }
 
