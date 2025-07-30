@@ -1,7 +1,6 @@
 [workspace]
 members = [
     ".",
-    "prompts-tui",
     "prompts-core",
 ]
 

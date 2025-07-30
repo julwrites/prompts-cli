@@ -4,8 +4,6 @@ use std::process::Command;
 use tempfile::NamedTempFile;
 use std::io::Write;
 use prompts_core::{Prompt, load_prompts};
-use std::fs::File;
-use tempfile::tempdir;
 use std::fs;
 
 #[test]
@@ -27,36 +25,6 @@ fn test_cli_list() -> Result<(), Box<dyn std::error::Error>> {
     cmd.assert()
         .success()
         .stdout(predicate::str::contains("Test Prompt: This is a test prompt."));
-
-    Ok(())
-}
-
-#[test]
-fn test_delete_prompt() -> Result<(), Box<dyn std::error::Error>> {
-    let mut file = NamedTempFile::new()?;
-    let prompts = vec![
-        Prompt {
-            name: "test_prompt".to_string(),
-            text: "This is a test prompt.".to_string(),
-            tags: vec!["tag1".to_string()],
-            categories: vec!["cat1".to_string()],
-        },
-    ];
-    let json = serde_json::to_string(&prompts)?;
-    writeln!(file, "{}", json)?;
-
-    let mut cmd = Command::cargo_bin("prompts-cli")?;
-    cmd.arg("--file")
-        .arg(file.path())
-        .arg("delete")
-        .arg("test_prompt");
-
-    cmd.assert()
-        .success()
-        .stdout(predicate::str::contains("Prompt 'test_prompt' deleted successfully."));
-
-    let updated_prompts = load_prompts(file.path().to_str().unwrap())?;
-    assert!(updated_prompts.is_empty());
 
     Ok(())
 }
@@ -160,7 +128,6 @@ fn test_cli_add() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-
 #[test]
 fn test_edit_prompt() -> Result<(), Box<dyn std::error::Error>> {
     let mut file = NamedTempFile::new()?;
@@ -182,9 +149,9 @@ fn test_edit_prompt() -> Result<(), Box<dyn std::error::Error>> {
         .arg("test_prompt")
         .arg("--text")
         .arg("This is the edited text.")
-        .arg("-T")
+        .arg("-a")
         .arg("tag1,tag2")
-        .arg("--categories")
+        .arg("-e")
         .arg("cat1,cat2");
 
     cmd.assert()
@@ -197,6 +164,36 @@ fn test_edit_prompt() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(updated_prompt.text, "This is the edited text.");
     assert_eq!(updated_prompt.tags, vec!["tag1".to_string(), "tag2".to_string()]);
     assert_eq!(updated_prompt.categories, vec!["cat1".to_string(), "cat2".to_string()]);
+
+    Ok(())
+}
+
+#[test]
+fn test_delete_prompt() -> Result<(), Box<dyn std::error::Error>> {
+    let mut file = NamedTempFile::new()?;
+    let prompts = vec![
+        Prompt {
+            name: "test_prompt".to_string(),
+            text: "This is a test prompt.".to_string(),
+            tags: vec!["tag1".to_string()],
+            categories: vec!["cat1".to_string()],
+        },
+    ];
+    let json = serde_json::to_string(&prompts)?;
+    writeln!(file, "{}", json)?;
+
+    let mut cmd = Command::cargo_bin("prompts-cli")?;
+    cmd.arg("--file")
+        .arg(file.path())
+        .arg("delete")
+        .arg("test_prompt");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("Prompt 'test_prompt' deleted successfully."));
+
+    let updated_prompts = load_prompts(file.path().to_str().unwrap())?;
+    assert!(updated_prompts.is_empty());
 
     Ok(())
 }

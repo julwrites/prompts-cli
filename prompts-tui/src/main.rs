@@ -119,7 +119,7 @@ impl TuiApp {
     fn delete_char(&mut self) {
         let is_not_cursor_leftmost = self.cursor_position != 0;
         if is_not_cursor_leftmost {
-            // `drain` does not `panic` if the index is out of bounds. 
+            // `drain` does not `panic` if the index is out of bounds.
             // `saturating_sub` makes sure that `from` is always at least `0`
             let current_index = self.cursor_position;
             let from = current_index.saturating_sub(1);
