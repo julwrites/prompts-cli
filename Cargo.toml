@@ -1,6 +1,5 @@
 [workspace]
 members = [
     "prompts-cli",
-    "prompts-tui",
-    "prompts-tauri",
 ]
+resolver = "2"
