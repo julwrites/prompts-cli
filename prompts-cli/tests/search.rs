@@ -1,4 +1,4 @@
-use prompts_core::{load_prompts, search_prompts, Prompt};
+use prompts_cli::{load_prompts, search_prompts, Prompt};
 use std::io::Write;
 use tempfile::NamedTempFile;
 

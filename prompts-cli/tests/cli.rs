@@ -3,7 +3,7 @@ use predicates::prelude::*;
 use std::process::Command;
 use tempfile::NamedTempFile;
 use std::io::Write;
-use prompts_core::{Prompt, load_prompts};
+use prompts_cli::{Prompt, load_prompts};
 use std::fs;
 
 #[test]

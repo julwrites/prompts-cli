@@ -1,5 +1,5 @@
 use clap::Parser;
-use prompts_core::{
+use prompts_cli::{
     GeneratorType, LLMTextGenerator, MockTextGenerator, Prompt, TextGenerator, load_prompts,
     save_prompts,
 };
@@ -145,7 +145,7 @@ async fn main() -> anyhow::Result<()> {
             categories,
         } => {
             let prompts = load_prompts(&cli.file)?;
-            let search_results = prompts_core::search_prompts(
+            let search_results = prompts_cli::search_prompts(
                 &prompts,
                 query.as_deref().unwrap_or(""),
                 &tags,
