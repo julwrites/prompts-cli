@@ -3,13 +3,9 @@ name = "prompts-tui"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-name = "prompts_tui"
-path = "src/lib.rs"
-
 [dependencies]
 anyhow = "1.0.98"
 crossterm = "0.27.0"
-ratatui = { version = "0.26.0", features = ["all-widgets"] }
+ratatui = "0.26.0"
 tokio = { version = "1.47.0", features = ["macros", "rt-multi-thread"] }
 prompts_core = { path = "../prompts-core" }

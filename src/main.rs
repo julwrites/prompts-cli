@@ -3,11 +3,13 @@ use prompts_core::{
     GeneratorType, LLMTextGenerator, MockTextGenerator, Prompt, TextGenerator, load_prompts,
     save_prompts,
 };
-use prompts_tui::run_tui;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Cli {
+    /// The path to the prompts file
+    #[arg(short, long)]
+    file: String,
     #[command(subcommand)]
     command: Commands,
 }
@@ -15,27 +17,17 @@ struct Cli {
 #[derive(Parser, Debug)]
 enum Commands {
     /// Lists all the prompts
-    List {
-        /// The path to the prompts file
-        #[arg(short, long)]
-        file: String,
-    },
+    List,
     /// Shows a specific prompt
     Show {
         /// The name of the prompt to show
         name: String,
-        /// The path to the prompts file
-        #[arg(short, long)]
-        file: String,
     },
 
     /// Generates text based on a prompt
     Generate {
         /// The name of the prompt to use for generation
         name: String,
-        /// The path to the prompts file
-        #[arg(short, long)]
-        file: String,
         /// Choose the text generation backend
         #[arg(long, value_enum, default_value_t = GeneratorType::Mock)]
         generator: GeneratorType,
@@ -46,9 +38,6 @@ enum Commands {
         name: String,
         /// The text content of the prompt
         text: String,
-        /// The path to the prompts file
-        #[arg(short, long)]
-        file: String,
         /// Tags for the prompt (comma-separated)
         #[arg(short, long, value_delimiter = ',')]
         tags: Vec<String>,
@@ -58,9 +47,6 @@ enum Commands {
     },
     /// Searches for prompts by name, text, tags, or categories
     Search {
-        /// The path to the prompts file
-        #[arg(short, long)]
-        file: String,
         /// The search query string
         #[arg(short, long)]
         query: Option<String>,
@@ -71,11 +57,24 @@ enum Commands {
         #[arg(short, long, value_delimiter = ',')]
         categories: Vec<String>,
     },
-    /// Starts the TUI
-    Tui {
-        /// The path to the prompts file
+    /// Edits an existing prompt
+    Edit {
+        /// The name of the prompt to edit
+        name: String,
+        /// The new text content of the prompt
         #[arg(short, long)]
-        file: String,
+        text: Option<String>,
+        /// The new tags for the prompt (comma-separated)
+        #[arg(short, long, value_delimiter = ',')]
+        tags: Option<Vec<String>>,
+        /// The new categories for the prompt (comma-separated)
+        #[arg(short, long, value_delimiter = ',')]
+        categories: Option<Vec<String>>,
+    },
+    /// Deletes a prompt
+    Delete {
+        /// The name of the prompt to delete
+        name: String,
     },
 }
 
@@ -85,14 +84,14 @@ async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::List { file } => {
-            let prompts = load_prompts(file)?;
+        Commands::List => {
+            let prompts = load_prompts(&cli.file)?;
             for prompt in prompts {
                 println!("{}: {}", prompt.name, prompt.text);
             }
         }
-        Commands::Show { name, file } => {
-            let prompts = load_prompts(file)?;
+        Commands::Show { name } => {
+            let prompts = load_prompts(&cli.file)?;
             if let Some(prompt) = prompts.iter().find(|p| p.name == *name) {
                 println!("{}", prompt.text);
             } else {
@@ -102,10 +101,9 @@ async fn main() -> anyhow::Result<()> {
 
         Commands::Generate {
             name,
-            file,
             generator,
         } => {
-            let prompts = load_prompts(file)?;
+            let prompts = load_prompts(&cli.file)?;
             if let Some(prompt) = prompts.iter().find(|p| p.name == *name) {
                 let generated_text = match generator {
                     GeneratorType::Mock => {
@@ -125,11 +123,10 @@ async fn main() -> anyhow::Result<()> {
         Commands::Add {
             name,
             text,
-            file,
             tags,
             categories,
         } => {
-            let mut prompts = load_prompts(file).unwrap_or_else(|_| Vec::new());
+            let mut prompts = load_prompts(&cli.file).unwrap_or_else(|_| Vec::new());
             if prompts.iter().any(|p| p.name == *name) {
                 anyhow::bail!("Prompt '{}' already exists", name);
             }
@@ -139,16 +136,15 @@ async fn main() -> anyhow::Result<()> {
                 tags: tags.clone(),
                 categories: categories.clone(),
             });
-            save_prompts(file, &prompts)?;
+            save_prompts(&cli.file, &prompts)?;
             println!("Prompt '{}' added successfully.", name);
         }
         Commands::Search {
-            file,
             query,
             tags,
             categories,
         } => {
-            let prompts = load_prompts(file)?;
+            let prompts = load_prompts(&cli.file)?;
             let search_results = prompts_core::search_prompts(
                 &prompts,
                 query.as_deref().unwrap_or(""),
@@ -167,8 +163,39 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
         }
-        Commands::Tui { file } => {
-            run_tui(file)?;
+        Commands::Edit {
+            name,
+            text,
+            tags,
+            categories,
+        } => {
+            let mut prompts = load_prompts(&cli.file)?;
+            if let Some(prompt) = prompts.iter_mut().find(|p| p.name == *name) {
+                if let Some(new_text) = text {
+                    prompt.text = new_text.clone();
+                }
+                if let Some(new_tags) = tags {
+                    prompt.tags = new_tags.clone();
+                }
+                if let Some(new_categories) = categories {
+                    prompt.categories = new_categories.clone();
+                }
+                save_prompts(&cli.file, &prompts)?;
+                println!("Prompt '{}' updated successfully.", name);
+            } else {
+                anyhow::bail!("Prompt '{}' not found", name);
+            }
+        }
+        Commands::Delete { name } => {
+            let mut prompts = load_prompts(&cli.file)?;
+            let initial_len = prompts.len();
+            prompts.retain(|p| p.name != *name);
+            if prompts.len() < initial_len {
+                save_prompts(&cli.file, &prompts)?;
+                println!("Prompt '{}' deleted successfully.", name);
+            } else {
+                anyhow::bail!("Prompt '{}' not found", name);
+            }
         }
     }
 

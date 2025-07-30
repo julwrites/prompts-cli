@@ -1,7 +1,6 @@
 [workspace]
 members = [
     ".",
-    "prompts-tui",
     "prompts-core",
 ]
 
@@ -21,7 +20,6 @@ thiserror = "2.0.12"
 tokio = { version = "1.47.0", features = ["macros", "rt-multi-thread"] }
 async-trait = "0.1.88"
 prompts_core = { path = "prompts-core" }
-prompts-tui = { path = "prompts-tui" }
 
 [[bin]]
 name = "prompts-cli"
@@ -29,8 +27,6 @@ path = "src/main.rs"
 
 [dev-dependencies]
 tempfile = "3.20.0"
-assert_cmd = "2.0.14"
-predicates = "3.1.0"
 
 [target.'cfg(not(windows))'.dev-dependencies]
 pty-process = "0.5.3"

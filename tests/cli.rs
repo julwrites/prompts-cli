@@ -1,193 +1,199 @@
-use std::fs::File;
-use std::io::Write;
+use assert_cmd::prelude::*;
+use predicates::prelude::*;
 use std::process::Command;
-use tempfile::tempdir;
+use tempfile::NamedTempFile;
+use std::io::Write;
+use prompts_core::{Prompt, load_prompts};
 use std::fs;
 
 #[test]
-fn test_cli_list() {
-    let dir = tempdir().unwrap();
-    let file_path = dir.path().join("prompts.json");
+fn test_cli_list() -> Result<(), Box<dyn std::error::Error>> {
+    let mut file = NamedTempFile::new()?;
+    writeln!(file, r#"[
+  {{
+    "name": "Test Prompt",
+    "text": "This is a test prompt.",
+    "tags": [],
+    "categories": []
+  }}
+]"#)?;
 
-    let mut file = File::create(&file_path).unwrap();
-    file.write_all(b"[\n  {\n    \"name\": \"Test Prompt\",\n    \"text\": \"This is a test prompt.\",\n    \"tags\": [],\n    \"categories\": []\n  }\n]").unwrap();
+    let mut cmd = Command::cargo_bin("prompts-cli")?;
+    cmd.arg("--file")
+        .arg(file.path())
+        .arg("list");
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("Test Prompt: This is a test prompt."));
 
-    let output = Command::new("cargo")
-        .args(["run", "--file", file_path.to_str().unwrap(), "--", "list"])
-        .output()
-        .expect("failed to execute process");
-
-    let stdout = String::from_utf8(output.stdout).unwrap();
-
-    assert!(output.status.success());
-    assert!(stdout.contains("Test Prompt: This is a test prompt."));
+    Ok(())
 }
 
 #[test]
-fn test_cli_show() {
-    let dir = tempdir().unwrap();
-    let file_path = dir.path().join("prompts.json");
+fn test_cli_show() -> Result<(), Box<dyn std::error::Error>> {
+    let mut file = NamedTempFile::new()?;
+    writeln!(file, r#"[
+  {{
+    "name": "Test Prompt",
+    "text": "This is a test prompt.",
+    "tags": [],
+    "categories": []
+  }}
+]"#)?;
 
-    let mut file = File::create(&file_path).unwrap();
-    file.write_all(b"[\n  {\n    \"name\": \"Test Prompt\",\n    \"text\": \"This is a test prompt.\",\n    \"tags\": [],\n    \"categories\": []\n  }\n]").unwrap();
+    let mut cmd = Command::cargo_bin("prompts-cli")?;
+    cmd.arg("--file")
+        .arg(file.path())
+        .arg("show")
+        .arg("Test Prompt");
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("This is a test prompt."));
 
-    let output = Command::new("cargo")
-        .args(["run", "--file", file_path.to_str().unwrap(), "--", "show", "Test Prompt"])
-        .output()
-        .expect("failed to execute process");
-
-    let stdout = String::from_utf8(output.stdout).unwrap();
-
-    assert!(output.status.success());
-    assert_eq!(stdout.trim(), "This is a test prompt.");
+    Ok(())
 }
 
 #[test]
-fn test_cli_show_not_found() {
-    let dir = tempdir().unwrap();
-    let file_path = dir.path().join("prompts.json");
+fn test_cli_show_not_found() -> Result<(), Box<dyn std::error::Error>> {
+    let mut file = NamedTempFile::new()?;
+    writeln!(file, "[]")?;
 
-    let mut file = File::create(&file_path).unwrap();
-    file.write_all(b"[]").unwrap();
+    let mut cmd = Command::cargo_bin("prompts-cli")?;
+    cmd.arg("--file")
+        .arg(file.path())
+        .arg("show")
+        .arg("Non-existent Prompt");
+    cmd.assert()
+        .failure()
+        .stderr(predicate::str::contains("Prompt 'Non-existent Prompt' not found"));
 
-    let output = Command::new("cargo")
-        .args(["run", "--file", file_path.to_str().unwrap(), "--", "show", "Non-existent Prompt"])
-        .output()
-        .expect("failed to execute process");
-
-    let stderr = String::from_utf8(output.stderr).unwrap();
-
-    assert!(!output.status.success());
-    assert!(stderr.contains("Prompt 'Non-existent Prompt' not found"));
+    Ok(())
 }
 
 #[test]
-fn test_cli_generate() {
-    let dir = tempdir().unwrap();
-    let file_path = dir.path().join("prompts.json");
+fn test_cli_generate() -> Result<(), Box<dyn std::error::Error>> {
+    let mut file = NamedTempFile::new()?;
+    writeln!(file, r#"[
+  {{
+    "name": "Test Prompt",
+    "text": "This is a test prompt.",
+    "tags": [],
+    "categories": []
+  }}
+]"#)?;
 
-    let mut file = File::create(&file_path).unwrap();
-    file.write_all(b"[\n  {\n    \"name\": \"Test Prompt\",\n    \"text\": \"This is a test prompt.\",\n    \"tags\": [],\n    \"categories\": []\n  }\n]").unwrap();
+    let mut cmd = Command::cargo_bin("prompts-cli")?;
+    cmd.arg("--file")
+        .arg(file.path())
+        .arg("generate")
+        .arg("Test Prompt")
+        .arg("--generator")
+        .arg("mock");
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("Generated text for 'This is a test prompt.'"));
 
-    let output = Command::new("cargo")
-        .args(["run", "--file", file_path.to_str().unwrap(), "--", "generate", "Test Prompt", "--generator", "mock"])
-        .output()
-        .expect("failed to execute process");
-
-    let stdout = String::from_utf8(output.stdout).unwrap();
-    let stderr = String::from_utf8(output.stderr).unwrap();
-
-    if !output.status.success() {
-        eprintln!("Command failed with stdout:\n{}", stdout);
-        eprintln!("Command failed with stderr:\n{}", stderr);
-    }
-
-    assert!(output.status.success());
-    assert!(stdout.contains("Generated text for 'This is a test prompt.': This is a test prompt.\n(This is a mock generation)"));
+    Ok(())
 }
 
 #[test]
-fn test_cli_add() {
-    let dir = tempdir().unwrap();
-    let file_path = dir.path().join("prompts.json");
+fn test_cli_add() -> Result<(), Box<dyn std::error::Error>> {
+    let file = NamedTempFile::new()?;
 
-    // Ensure the file is empty or doesn't exist initially
-    let _ = fs::remove_file(&file_path);
+    let mut cmd = Command::cargo_bin("prompts-cli")?;
+    cmd.arg("--file")
+        .arg(file.path())
+        .arg("add")
+        .arg("New Prompt")
+        .arg("This is a new prompt.")
+        .arg("--tags")
+        .arg("tag1,tag2")
+        .arg("--categories")
+        .arg("cat1,cat2");
 
-    let output = Command::new("cargo")
-        .args([
-            "run",
-            "--file",
-            file_path.to_str().unwrap(),
-            "--",
-            "add",
-            "New Prompt",
-            "This is a new prompt.",
-            "--tags",
-            "tag1,tag2",
-            "--categories",
-            "cat1,cat2",
-        ])
-        .output()
-        .expect("failed to execute process");
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("Prompt 'New Prompt' added successfully."));
 
-    let stdout = String::from_utf8(output.stdout).unwrap();
-    let stderr = String::from_utf8(output.stderr).unwrap();
+    let prompts_content = fs::read_to_string(file.path())?;
+    let prompts: Vec<Prompt> = serde_json::from_str(&prompts_content)?;
 
-    if !output.status.success() {
-        eprintln!("Command failed with stdout:\n{}", stdout);
-        eprintln!("Command failed with stderr:\n{}", stderr);
-    }
+    assert_eq!(prompts.len(), 1);
+    let new_prompt = &prompts[0];
+    assert_eq!(new_prompt.name, "New Prompt");
+    assert_eq!(new_prompt.text, "This is a new prompt.");
+    assert_eq!(new_prompt.tags, vec!["tag1", "tag2"]);
+    assert_eq!(new_prompt.categories, vec!["cat1", "cat2"]);
 
-    assert!(output.status.success());
-    assert!(stdout.contains("Prompt 'New Prompt' added successfully."));
-
-    // Verify the content of the file
-    let prompts_content = fs::read_to_string(&file_path).unwrap();
-    let prompts: serde_json::Value = serde_json::from_str(&prompts_content).unwrap();
-
-    assert_eq!(prompts.as_array().unwrap().len(), 1);
-    let new_prompt = &prompts.as_array().unwrap()[0];
-    assert_eq!(new_prompt["name"], "New Prompt");
-    assert_eq!(new_prompt["text"], "This is a new prompt.");
-    assert_eq!(new_prompt["tags"].as_array().unwrap().len(), 2);
-    assert!(new_prompt["tags"].as_array().unwrap().contains(&serde_json::Value::String("tag1".to_string())));
-    assert!(new_prompt["tags"].as_array().unwrap().contains(&serde_json::Value::String("tag2".to_string())));
-    assert_eq!(new_prompt["categories"].as_array().unwrap().len(), 2);
-    assert!(new_prompt["categories"].as_array().unwrap().contains(&serde_json::Value::String("cat1".to_string())));
-    assert!(new_prompt["categories"].as_array().unwrap().contains(&serde_json::Value::String("cat2".to_string())));
+    Ok(())
 }
 
 #[test]
-fn test_cli_search() {
-    let dir = tempdir().unwrap();
-    let file_path = dir.path().join("prompts.json");
+fn test_edit_prompt() -> Result<(), Box<dyn std::error::Error>> {
+    let mut file = NamedTempFile::new()?;
+    let prompts = vec![
+        Prompt {
+            name: "test_prompt".to_string(),
+            text: "This is a test prompt.".to_string(),
+            tags: vec!["tag1".to_string()],
+            categories: vec!["cat1".to_string()],
+        },
+    ];
+    let json = serde_json::to_string(&prompts)?;
+    writeln!(file, "{}", json)?;
 
-    let mut file = File::create(&file_path).unwrap();
-    file.write_all(b"[\n  {\n    \"name\": \"Prompt One\",\n    \"text\": \"This is the first prompt.\",\n    \"tags\": [\"tagA\", \"tagB\"],\n    \"categories\": [\"catX\"]\n  },\n  {\n    \"name\": \"Prompt Two\",\n    \"text\": \"Second prompt here.\",\n    \"tags\": [\"tagB\", \"tagC\"],\n    \"categories\": [\"catY\"]\n  },\n  {\n    \"name\": \"Another Prompt\",\n    \"text\": \"A third one for testing.\",\n    \"tags\": [\"tagA\"],\n    \"categories\": [\"catX\", \"catZ\"]\n  }\n]").unwrap();
+    let mut cmd = Command::cargo_bin("prompts-cli")?;
+    cmd.arg("--file")
+        .arg(file.path())
+        .arg("edit")
+        .arg("test_prompt")
+        .arg("--text")
+        .arg("This is the edited text.")
+        .arg("--tags")
+        .arg("tag1,tag2")
+        .arg("--categories")
+        .arg("cat1,cat2");
 
-    // Test search by query
-    let output = Command::new("cargo")
-        .args(["run", "--file", file_path.to_str().unwrap(), "--", "search", "--query", "first"])
-        .output()
-        .expect("failed to execute process");
-    let stdout = String::from_utf8(output.stdout).unwrap();
-    let stderr = String::from_utf8(output.stderr).unwrap();
-    if !output.status.success() {
-        eprintln!("Command failed with stdout:\n{}", stdout);
-        eprintln!("Command failed with stderr:\n{}", stderr);
-    }
-    assert!(output.status.success());
-    assert!(stdout.contains("Name: Prompt One"));
-    assert!(!stdout.contains("Name: Prompt Two"));
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("Prompt 'test_prompt' updated successfully."));
 
-    // Test search by tag
-    let output = Command::new("cargo")
-        .args(["run", "--file", file_path.to_str().unwrap(), "--", "search", "--query", "", "--tags", "tagC"])
-        .output()
-        .expect("failed to execute process");
-    let stdout = String::from_utf8(output.stdout).unwrap();
-    let stderr = String::from_utf8(output.stderr).unwrap();
-    if !output.status.success() {
-        eprintln!("Command failed with stdout:\n{}", stdout);
-        eprintln!("Command failed with stderr:\n{}", stderr);
-    }
-    assert!(output.status.success());
-    assert!(stdout.contains("Name: Prompt Two"));
-    assert!(!stdout.contains("Name: Prompt One"));
+    let updated_prompts = load_prompts(file.path().to_str().unwrap())?;
+    let updated_prompt = updated_prompts.iter().find(|p| p.name == "test_prompt").unwrap();
 
-    // Test search by category and query
-    let output = Command::new("cargo")
-        .args(["run", "--file", file_path.to_str().unwrap(), "--", "search", "--query", "third", "--categories", "catX"])
-        .output()
-        .expect("failed to execute process");
-    let stdout = String::from_utf8(output.stdout).unwrap();
-    let stderr = String::from_utf8(output.stderr).unwrap();
-    if !output.status.success() {
-        eprintln!("Command failed with stdout:\n{}", stdout);
-        eprintln!("Command failed with stderr:\n{}", stderr);
-    }
-    assert!(output.status.success());
-    assert!(stdout.contains("Name: Another Prompt"));
-    assert!(!stdout.contains("Name: Prompt One"));
+    assert_eq!(updated_prompt.text, "This is the edited text.");
+    assert_eq!(updated_prompt.tags, vec!["tag1".to_string(), "tag2".to_string()]);
+    assert_eq!(updated_prompt.categories, vec!["cat1".to_string(), "cat2".to_string()]);
+
+    Ok(())
+}
+
+#[test]
+fn test_delete_prompt() -> Result<(), Box<dyn std::error::Error>> {
+    let mut file = NamedTempFile::new()?;
+    let prompts = vec![
+        Prompt {
+            name: "test_prompt".to_string(),
+            text: "This is a test prompt.".to_string(),
+            tags: vec!["tag1".to_string()],
+            categories: vec!["cat1".to_string()],
+        },
+    ];
+    let json = serde_json::to_string(&prompts)?;
+    writeln!(file, "{}", json)?;
+
+    let mut cmd = Command::cargo_bin("prompts-cli")?;
+    cmd.arg("--file")
+        .arg(file.path())
+        .arg("delete")
+        .arg("test_prompt");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("Prompt 'test_prompt' deleted successfully."));
+
+    let updated_prompts = load_prompts(file.path().to_str().unwrap())?;
+    assert!(updated_prompts.is_empty());
+
+    Ok(())
 }

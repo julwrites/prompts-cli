@@ -55,6 +55,28 @@ pub fn save_prompts(file_path: &str, prompts: &[Prompt]) -> Result<(), io::Error
     Ok(())
 }
 
+pub fn search_prompts<'a>(
+    prompts: &'a [Prompt],
+    query: &str,
+    tags: &[String],
+    categories: &[String],
+) -> Vec<&'a Prompt> {
+    let query = query.to_lowercase();
+    prompts
+        .iter()
+        .filter(|p| {
+            let matches_query = query.is_empty()
+                || p.name.to_lowercase().contains(&query)
+                || p.text.to_lowercase().contains(&query);
+            let matches_tags =
+                tags.is_empty() || tags.iter().all(|t| p.tags.contains(t));
+            let matches_categories = categories.is_empty()
+                || categories.iter().all(|c| p.categories.contains(c));
+            matches_query && matches_tags && matches_categories
+        })
+        .collect()
+}
+
 pub fn search_prompts(prompts: &[Prompt], query: &str, tags: &[String], categories: &[String]) -> Vec<Prompt> {
     let query_lower = query.to_lowercase();
     prompts.iter().filter(|p| {
