@@ -65,10 +65,10 @@ enum Commands {
         #[arg(short, long)]
         text: Option<String>,
         /// The new tags for the prompt (comma-separated)
-        #[arg(short, long, value_delimiter = ',')]
+        #[arg(short = 'a', long, value_delimiter = ',')]
         tags: Option<Vec<String>>,
         /// The new categories for the prompt (comma-separated)
-        #[arg(short, long, value_delimiter = ',')]
+        #[arg(short = 'e', long, value_delimiter = ',')]
         categories: Option<Vec<String>>,
     },
     /// Deletes a prompt
