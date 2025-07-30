@@ -1,199 +1,204 @@
-# Product Requirements Document (PRD): Prompts CLI Tool & Neovim Plugin
+# Product Requirements Document (PRD): Prompts CLI Tool & Multi-Frontend Prompt Management Solution
 
-This document outlines the requirements for developing a multi-frontend CLI tool in Rust with accompanying Neovim plugin integration, designed to enhance developer productivity through intuitive prompt management and text generation capabilities.
+This document outlines the requirements for building a multi-frontend prompt management system aimed at developers working with large language models (LLMs). The system helps developers **store, retrieve, edit, and reuse prompts** easily across various environments. The project consists of several repositories to cover different frontends and integration points.
 
 ## Executive Summary
 
-The Prompts project consists of two complementary repositories: a core Rust CLI application (`julwrites/prompts-cli`) providing multiple frontend interfaces, and a Neovim plugin (`julwrites/prompts-nvim`) that integrates with the installed CLI tool[1][2]. This architecture enables developers to access prompt management functionality across multiple interfaces while maintaining consistency and performance.
+Developers using LLMs today face challenges in managing the transient prompts they create, often losing valuable prompts or spending extra effort reconstructing them. The Prompts solution provides **a unified platform to persist and manage prompts effectively** with seamless access through multiple frontends developers commonly use: CLI, Terminal UI, Desktop application, Neovim integration, and Web PWA.
 
 ## Product Overview
 
 ### Problem Statement
 
-Developers frequently work with various prompting tools and text generation workflows but lack a unified, efficient interface that adapts to different working environments[3]. Current solutions often require switching between multiple applications or suffer from performance limitations when processing large datasets.
+Prompt crafting for LLMs is iterative and transient, frequently leading to loss of valuable prompt templates and workflows. Developers need a dependable system to **store, organize, and reuse prompts** efficiently without disrupting their existing workflows or switching between many disparate tools.
 
 ### Solution Approach
 
-The Prompts tool addresses this challenge by providing a modular architecture with three distinct frontends:
-- Command-line interface for script automation and quick operations[1][4]
-- Terminal User Interface (TUI) for interactive workflows[5][6]
-- Tauri desktop application for rich graphical interactions[7][8]
-- Neovim integration for seamless editor-based functionality[9][10]
+Create a modular, cross-platform **Prompt Management Solution** that offers:
 
-### Current Status
-
-As of today, the core CLI and TUI frontends are largely implemented. The project includes:
-- **Core Rust Library (`prompts_core`):** Defines `Prompt` structure, `load_prompts` function, and an extensible `TextGenerator` trait with `MockTextGenerator` and `LLMTextGenerator` (placeholder) implementations.
-- **Command-Line Interface (CLI):** Implements `list`, `show`, and `generate` subcommands. The `generate` subcommand supports selecting between mock and LLM (placeholder) backends.
-- **Terminal User Interface (TUI):** Provides an interactive interface for browsing, selecting, editing, and previewing generated text for prompts. It integrates with the `TextGenerator` trait.
-- **Continuous Integration/Continuous Deployment (CI/CD):** GitHub Actions are configured for cross-platform testing (Linux, macOS, Windows) and automated publishing to `crates.io` upon merge to `main`.
+- A **core prompt management service** implemented in Rust with rich CLI capabilities.
+- Multiple frontends to leverage the core service:
+  - **CLI frontend** using Clap (repository: `julwrites/prompts-cli`)
+  - **Terminal UI (TUI)** using Ratatui (within the CLI repo)
+  - **Desktop application** using Tauri (within the CLI repo)
+  - **Neovim plugin** facilitating prompt management inside the editor (repository: `julwrites/prompts-nvim`)
+  - **Web Progressive Web App (PWA)** for accessible browser-based UI (repository: `julwrites/prompts-pwa`)
 
 ### Target Audience
 
-The primary users are software developers who:
-- Work extensively with text processing and generation tools
-- Utilize multiple development environments
-- Value performance and efficiency in their workflows
-- Require seamless integration with existing tools
+- Developers who utilize LLMs for software development, content generation, or automation.
+- Users who need to manage numerous prompt templates across various projects.
+- Those who desire consistency and efficiency in interacting with LLM prompts across CLI, terminal, desktop, and editor environments.
 
 ## Product Goals and Success Metrics
 
-### Primary Goals
+| Goal                               | Success Metric                               | Target                          |
+|-----------------------------------|----------------------------------------------|--------------------------------|
+| Unified prompt storage and access | Persistent, searchable prompt database        | 100% prompt retrieval rate     |
+| Multi-frontend availability       | Functional CLI, TUI, Desktop, Neovim, Web interfaces | All frontends operational by v1.0 |
+| Cross-platform compatibility      | Builds and runs on Linux/macOS/Windows        | 100% supported platforms       |
+| Developer workflow integration    | Seamless integration in CLI and Neovim       | >95% adoption in test users    |
+| Performance and responsiveness   | Prompt retrieval and save time                 | <100ms response latency        |
+| User adoption and satisfaction    | Active users, positive feedback               | 1,000+ active users in 6 months|
 
-| Goal | Success Metric | Target |
-|------|---------------|--------|
-| Cross-platform compatibility | Successful builds on Linux, macOS, Windows | 100% success rate[11] |
-| Performance efficiency | CLI command response time | 95% success rate |
-
-### Secondary Goals
-
-| Goal | Success Metric | Target |
-|------|---------------|--------|
-| Community engagement | GitHub stars and contributions | 500+ stars, 20+ contributors |
-| Documentation quality | User onboarding completion rate | >80% complete setup |
-| Extensibility | Third-party plugin integrations | 5+ community extensions |
-
-## User Stories and Use Cases
+## User Stories
 
 ### Core User Stories
 
-**CLI Frontend User Stories:**
-
 | Story ID | User Story | Acceptance Criteria | Priority |
-|----------|------------|-------------------|----------|
-| CLI-001 | As a developer, I want to execute prompt operations from the command line so that I can automate workflows[12] | CLI accepts arguments via Clap, returns structured output, supports piping | P0 |
-| CLI-002 | As a script writer, I want to process JSON input/output so that I can integrate with other tools[13] | Supports JSON input via stdin, outputs valid JSON, handles parsing errors gracefully | P0 |
-| CLI-003 | As a power user, I want comprehensive help documentation so that I can discover all available features[14] | Auto-generated help via Clap, includes examples, supports subcommand help | P1 |
+|----------|------------|---------------------|----------|
+| US-001 | As a developer, I want to store prompts so that I can reuse them later easily. | Prompts can be saved with title, tags, and categories | P0 |
+| US-002 | As a user, I want to retrieve prompts quickly using search or filters so that I can find the right prompt immediately. | Indexed search by text, tag, category; fast results | P0 |
+| US-003 | As a developer, I want to edit existing prompts to refine them over time. | In-place editing and save confirmation in all frontends | P0 |
+| US-004 | As a user, I want to organize prompts by folders, tags, and categories to keep them structured. | Hierarchical or tag-based organization | P1 |
+| US-005 | As a CLI user, I want to interact with the prompt manager via commands using Clap.| Supports commands for add, list, edit, delete | P0 |
+| US-006 | As a terminal user, I want a TUI to browse and manage prompts interactively. | Responsive Ratatui interface with keyboard navigation | P1 |
+| US-007 | As a desktop app user, I want a user-friendly UI for managing prompts with drag & drop and rich controls. | Tauri app with native integrations and smoother UX | P1 |
+| US-008 | As a Neovim user, I want to integrate prompt management into my editor so I can use prompts seamlessly during coding.| Lua plugin invoking CLI, inserting prompts at cursor | P0 |
+| US-009 | As a web user, I want a PWA to manage prompts from any device with internet access. | Responsive web UI with offline support | P2 |
 
-**TUI Frontend User Stories:**
+## Technical Architecture
 
-| Story ID | User Story | Acceptance Criteria | Priority |
-|----------|------------|-------------------|----------|
-| TUI-001 | As a developer, I want an interactive terminal interface so that I can browse and manage prompts visually[5][15] | Ratatui-based interface, keyboard navigation, real-time updates | P0 |
-| TUI-002 | As a user, I want to preview prompt results before execution so that I can verify outputs[6] | Preview pane, syntax highlighting, edit-before-execute workflow | P1 |
-| TUI-003 | As a developer, I want responsive terminal UI so that I can work efficiently[15] | 90% code coverage
-- Error handling and edge case validation
-- Configuration parsing and validation
-- Data processing and transformation functions
+### Core Architectural Principles
 
-### Integration Testing
+A **layered modular architecture** with clear separation of concerns:
 
-- CLI command execution and output validation
-- TUI user interaction simulation
-- Tauri frontend-backend communication
-- Neovim plugin command execution
+- **Core Prompt Management Service** (business logic, data storage, and API)
+  - Written in Rust
+  - Common prompt store accessible by all frontends
+  - Storage format: local filesystem / optional sync later
+  - Features: CRUD operations, search, filtering, tagging
 
-### End-to-End Testing
+- **Frontends**
+  - **CLI (Clap)** — command-based interface with all core interactions
+  - **Terminal UI (Ratatui + Crossterm)** — interactive terminal-based UI within CLI repo
+  - **Desktop app (Tauri + React)** — desktop GUI with native OS integration within CLI repo
+  - **Neovim plugin (Lua)** — lightweight integration calling the CLI tool
+  - **Web PWA (React/Vue + Rust backend or API proxy)** — separate repo `julwrites/prompts-pwa`
 
-- Cross-platform installation and setup
-- Multi-frontend workflow scenarios
-- Performance under realistic load conditions
-- Error recovery and graceful degradation
+### Data Storage
 
-### Performance Testing
+- Use serialized JSON or TOML files for local prompt persistence.
+- Indexed in-memory data structures for fast lookup.
+- Consider SQLite or other embedded DB for future scalability.
 
-- Benchmark suite for critical operations
-- Memory usage profiling under load
-- Startup time measurement across platforms
-- Scalability testing with large datasets
+### Communication Patterns
+
+| Frontend   | Communication Method                          |
+|------------|----------------------------------------------|
+| CLI/TUI    | Direct function calls inside Rust process     |
+| Desktop   | Tauri’s RPC commands invoking Rust core       |
+| Neovim    | External CLI invocation via `vim.fn.jobstart` |
+| Web PWA    | API calls to Rust backend or WASM module      |
+
+## Repositories and Directory Structure
+
+### Rust CLI Repository: `julwrites/prompts-cli`
+
+```
+prompts-cli/
+├── Cargo.toml
+├── src/
+│   ├── main.rs              # CLI entrypoint
+│   ├── cli/                 # Clap command definitions
+│   ├── core/                # Business logic, prompt management
+│   ├── tui/                 # Ratatui-based TUI implementation
+│   ├── tauri/               # Tauri backend integration
+│   ├── utils/               # Helpers, error handling, config
+├── tauri-app/
+│   ├── src-tauri/           # Tauri Rust backend
+│   └── src/                 # React app for desktop UI
+└── tests/
+```
+
+### Neovim Plugin Repository: `julwrites/prompts-nvim`
+
+```
+prompts-nvim/
+├── README.md
+├── lua/
+│   └── prompts/
+│       ├── init.lua         # Main interface
+│       ├── commands.lua     # Command implementations
+│       ├── config.lua       # Plugin configuration
+│       └── utils.lua        # Helper functions
+├── plugin/
+│   └── prompts.vim          # Vim autodoc & compatibility
+└── doc/
+    └── prompts.txt          # Plugin help docs
+```
+
+### Future Web Repository: `julwrites/prompts-pwa`
+
+- To contain PWA frontend and likely a lightweight backend or WASM module tied to Rust prompt core.
+
+## Feature Specification
+
+### Core Features (P0)
+
+- **Prompt CRUD**: Create, Read, Update, Delete prompt templates.
+- **Prompt Metadata**: Titles, tags, categories for organizational clarity.
+- **Search and Filtering**: Text search with filtering by tag/category.
+- **CLI Frontend**: Comprehensive Clap-based commands for all prompt operations.
+- **TUI Frontend**: Responsive Ratatui interface integrated within CLI repo.
+- **Neovim Integration**: Lua plugin to execute commands, insert prompts into buffers.
+
+### Enhanced Features (P1)
+
+- **Organization Enhancements**: Folder hierarchy, bulk operations.
+- **Prompt Preview & Edit in TUI**: Syntax highlighting, inline editing.
+- **Desktop Application**: Rich UI interactions, native system features.
+- **Help and Documentation**: Integrated CLI and Neovim help commands.
+- **Configuration Management**: Supports environment vars, config files.
+
+### Future Features (P2)
+
+- **Web PWA**: Full-featured prompt management in browser.
+- **Sync & Backup**: Cloud or local synchronization.
+- **Collaboration Features**: Shared prompt libraries.
+- **Export/Import Formats**: YAML, TOML, JSON support.
+- **Analytics**: Usage stats on prompts.
+
+## Acceptance Criteria
+
+- Prompts can be stored and retrieved accurately across frontends.
+- CLI commands execute within 100ms on typical operations.
+- TUI interface updates responsively on user input.
+- Desktop app launches and performs core operations on supported OSes.
+- Neovim plugin detects CLI installation and inserts prompts properly.
+- Web PWA loads within 2 seconds and supports offline usage.
+
+## Development Roadmap
+
+| Phase            | Key Deliverables                               | Timeframe         |
+|------------------|------------------------------------------------|-------------------|
+| Phase 1: Core    | Core prompt management + CLI + basic TUI       | Weeks 1–5         |
+| Phase 2: Desktop | Tauri desktop app integration + UI polish      | Weeks 6–9         |
+| Phase 3: Neovim | Neovim plugin development and integration      | Weeks 10–12       |
+| Phase 4: Web     | PWA frontend and backend implementation         | Weeks 13–16       |
+| Phase 5: Polish  | Testing, documentation, packaging, releases    | Weeks 17–18       |
+
+## Testing Strategy
+
+- Unit tests for core prompt management and CLI commands.
+- Integration tests across CLI, TUI, and desktop frontends.
+- Plugin command execution tests inside Neovim.
+- Performance benchmarks on prompt retrieval, editing.
+- Cross-platform compatibility testing.
 
 ## Documentation Plan
 
-### User Documentation
+- Installation guides per frontend.
+- CLI command reference with examples.
+- User guides for TUI and desktop app.
+- Neovim plugin usage and configuration docs.
+- Developer architecture overview and contribution guidelines.
 
-- **Getting Started Guide**: Installation, basic usage, first examples
-- **CLI Reference**: Complete command documentation with examples
-- **TUI User Guide**: Interface navigation and advanced features
-- **Desktop App Manual**: GUI usage and configuration options
-- **Neovim Plugin Docs**: Installation, configuration, and commands
+## Success Criteria
 
-### Developer Documentation
+- Consistent prompt storage and access across all platforms.
+- Functional frontends with smooth, responsive UX.
+- Positive community feedback and adoption rates.
+- Active development and contributions on GitHub repos.
 
-- **Architecture Overview**: System design and component relationships
-- **API Documentation**: Core service interfaces and contracts
-- **Contributing Guide**: Development setup and contribution process
-- **Extension Guide**: Plugin development and customization
-
-### Deployment Documentation
-
-- **Installation Scripts**: Automated setup for different platforms
-- **Configuration Guide**: Detailed configuration options and examples
-- **Troubleshooting**: Common issues and resolution procedures
-- **Migration Guide**: Upgrading between versions
-
-## Release Strategy
-
-### Development Milestones
-
-| Milestone | Target Date | Deliverables |
-|-----------|-------------|--------------|
-| Alpha Release | Week 8 | Core CLI + TUI functionality |
-| Beta Release | Week 12 | All frontends with basic features |
-| Release Candidate | Week 15 | Complete feature set, documentation |
-| Version 1.0 | Week 16 | Production-ready release |
-
-### Distribution Channels
-
-**Rust Ecosystem:**
-- Cargo registry for CLI tool installation
-- GitHub releases with pre-built binaries
-- Homebrew formula for macOS users
-- AUR package for Arch Linux users
-
-**Neovim Ecosystem:**
-- Plugin manager compatibility (Packer, Lazy.nvim, vim-plug)
-- Neovim plugin registry submission
-- Documentation integration with Neovim help system
-
-**Desktop Distribution:**
-- GitHub releases with platform-specific installers
-- Windows MSI installer via CI/CD
-- macOS DMG with code signing
-- Linux AppImage for universal compatibility
-
-## Risk Assessment and Mitigation
-
-### Technical Risks
-
-| Risk | Probability | Impact | Mitigation Strategy |
-|------|------------|--------|-------------------|
-| Cross-platform compatibility issues | Medium | High | Extensive CI/CD testing, early platform validation |
-| Performance bottlenecks | Low | Medium | Regular benchmarking, profiling integration |
-| Dependency conflicts | Medium | Medium | Careful dependency management, version pinning |
-| API instability | Low | High | Conservative dependency updates, compatibility testing |
-
-### User Adoption Risks
-
-| Risk | Probability | Impact | Mitigation Strategy |
-|------|------------|--------|-------------------|
-| Complex installation process | Medium | High | Automated installers, clear documentation |
-| Learning curve too steep | Medium | Medium | Progressive feature disclosure, comprehensive examples |
-| Competing solutions | High | Medium | Focus on unique value proposition, community engagement |
-| Limited platform support | Low | Medium | Prioritize major platforms, expand gradually |
-
-### Project Management Risks
-
-| Risk | Probability | Impact | Mitigation Strategy |
-|------|------------|--------|-------------------|
-| Scope creep | Medium | High | Clear requirements documentation, regular reviews |
-| Timeline delays | Medium | Medium | Realistic estimates, buffer time allocation |
-| Resource constraints | Low | High | Modular development, community contributions |
-| Quality issues | Low | High | Comprehensive testing strategy, code reviews |
-
-## Success Criteria and Metrics
-
-### Technical Success Metrics
-
-- **Performance**: All operations complete within specified time limits
-- **Reliability**: 70% of users continue using after 30 days
-- **Support Requests**: <5% of users require support assistance
-- **Community Engagement**: Active GitHub discussions and contributions
-
-### Business Success Metrics
-
-- **Development Efficiency**: Feature delivery within planned timeframes
-- **Code Quality**: Maintainable, well-documented, tested codebase
-- **Community Growth**: Self-sustaining community of users and contributors
-- **Strategic Positioning**: Recognition as leading tool in the developer ecosystem
-
-This PRD provides a comprehensive roadmap for developing the Prompts CLI tool and Neovim plugin, ensuring all stakeholders understand the requirements, expectations, and success criteria for this multi-frontend development project.
+This PRD refocuses the project clearly around **prompt management for LLM developers** and aligns the architecture, repositories, and user-facing features accordingly.

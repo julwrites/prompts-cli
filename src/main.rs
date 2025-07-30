@@ -1,9 +1,15 @@
 use clap::Parser;
-use prompts_core::{load_prompts, MockTextGenerator, TextGenerator, LLMTextGenerator, GeneratorType};
+use prompts_core::{
+    GeneratorType, LLMTextGenerator, MockTextGenerator, Prompt, TextGenerator, load_prompts,
+    save_prompts, search_prompts,
+};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Cli {
+    /// The path to the prompts file
+    #[arg(short, long)]
+    file: String,
     #[command(subcommand)]
     command: Commands,
 }
@@ -25,13 +31,7 @@ enum Commands {
         #[arg(short, long)]
         file: String,
     },
-    #[cfg(feature = "tui")]
-    /// Starts the interactive TUI
-    Tui {
-        /// The path to the prompts file
-        #[arg(short, long)]
-        file: String,
-    },
+
     /// Generates text based on a prompt
     Generate {
         /// The name of the prompt to use for generation
@@ -45,12 +45,38 @@ enum Commands {
         #[arg(long, value_enum, default_value_t = GeneratorType::Mock)]
         generator: GeneratorType,
     },
+    /// Adds a new prompt
+    Add {
+        /// The name of the prompt
+        name: String,
+        /// The text content of the prompt
+        text: String,
+        /// The path to the prompts file
+        #[arg(short, long)]
+        file: String,
+        /// Tags for the prompt (comma-separated)
+        #[arg(short, long, value_delimiter = ',')]
+        tags: Vec<String>,
+        /// Categories for the prompt (comma-separated)
+        #[arg(short, long, value_delimiter = ',')]
+        categories: Vec<String>,
+    },
+    /// Searches for prompts by name, text, tags, or categories
+    Search {
+        /// The search query string
+        #[arg(short, long)]
+        query: Option<String>,
+        /// Tags to filter by (comma-separated)
+        #[arg(short, long, value_delimiter = ',')]
+        tags: Vec<String>,
+        /// Categories to filter by (comma-separated)
+        #[arg(short, long, value_delimiter = ',')]
+        categories: Vec<String>,
+    },
 }
 
-#[cfg(feature = "tui")]
-mod tui;
-
 #[tokio::main]
+
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
@@ -69,11 +95,12 @@ async fn main() -> anyhow::Result<()> {
                 anyhow::bail!("Prompt '{}' not found", name);
             }
         }
-        #[cfg(feature = "tui")]
-        Commands::Tui { file } => {
-            tui::run(file).await?;
-        }
-        Commands::Generate { name, file, generator } => {
+
+        Commands::Generate {
+            name,
+            file,
+            generator,
+        } => {
             let prompts = load_prompts(file)?;
             if let Some(prompt) = prompts.iter().find(|p| p.name == *name) {
                 let generated_text = match generator {
@@ -91,7 +118,52 @@ async fn main() -> anyhow::Result<()> {
                 anyhow::bail!("Prompt '{}' not found", name);
             }
         }
+        Commands::Add {
+            name,
+            text,
+            file,
+            tags,
+            categories,
+        } => {
+            let mut prompts = load_prompts(file).unwrap_or_else(|_| Vec::new());
+            if prompts.iter().any(|p| p.name == *name) {
+                anyhow::bail!("Prompt '{}' already exists", name);
+            }
+            prompts.push(Prompt {
+                name: name.clone(),
+                text: text.clone(),
+                tags: tags.clone(),
+                categories: categories.clone(),
+            });
+            save_prompts(file, &prompts)?;
+            println!("Prompt '{}' added successfully.", name);
+        }
+        Commands::Search {
+            query,
+            tags,
+            categories,
+        } => {
+            let prompts = load_prompts(&cli.file)?;
+            let search_results = search_prompts(
+                &prompts,
+                query.as_deref().unwrap_or(""),
+                &tags,
+                &categories,
+            );
+
+            if search_results.is_empty() {
+                println!("No prompts found matching your criteria.");
+            } else {
+                for prompt in search_results {
+                    println!(
+                        "Name: {}\nText: {}\nTags: {:?}\nCategories: {:?}\n---",
+                        prompt.name, prompt.text, prompt.tags, prompt.categories
+                    );
+                }
+            }
+        }
     }
 
     Ok(())
 }
+

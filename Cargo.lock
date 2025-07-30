@@ -479,12 +479,35 @@ dependencies = [
  "anyhow",
  "async-trait",
  "clap",
- "crossterm",
+ "prompts_core",
  "pty-process",
- "ratatui",
  "serde",
  "serde_json",
  "tempfile",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "prompts-tui"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "crossterm",
+ "prompts_core",
+ "ratatui",
+ "tokio",
+]
+
+[[package]]
+name = "prompts_core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "clap",
+ "serde",
+ "serde_json",
  "thiserror",
  "tokio",
 ]

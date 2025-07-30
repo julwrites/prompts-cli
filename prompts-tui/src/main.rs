@@ -19,7 +19,7 @@ enum InputMode {
 }
 
 struct TuiApp {
-    prompts: Vec<Prompt>,
+    prompts: Vec<prompts_core::Prompt>,
     list_state: ListState,
     input_mode: InputMode,
     selected_prompt_text: String,
@@ -28,7 +28,7 @@ struct TuiApp {
 }
 
 impl TuiApp {
-    fn new(prompts: Vec<Prompt>) -> TuiApp {
+    fn new(prompts: Vec<prompts_core::Prompt>) -> TuiApp {
         let mut list_state = ListState::default();
         if !prompts.is_empty() {
             list_state.select(Some(0));
@@ -150,7 +150,7 @@ impl TuiApp {
 }
 
 pub async fn run(file: &str) -> Result<()> {
-    let prompts = load_prompts(file)?;
+    let prompts = prompts_core::load_prompts(file)?;
     let mut app = TuiApp::new(prompts);
 
     let mut terminal = setup_terminal()?;
