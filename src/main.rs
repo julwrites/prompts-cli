@@ -8,9 +8,6 @@ use prompts_tui::run_tui;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Cli {
-    /// The path to the prompts file
-    #[arg(short, long)]
-    file: String,
     #[command(subcommand)]
     command: Commands,
 }
@@ -18,17 +15,27 @@ struct Cli {
 #[derive(Parser, Debug)]
 enum Commands {
     /// Lists all the prompts
-    List,
+    List {
+        /// The path to the prompts file
+        #[arg(short, long)]
+        file: String,
+    },
     /// Shows a specific prompt
     Show {
         /// The name of the prompt to show
         name: String,
+        /// The path to the prompts file
+        #[arg(short, long)]
+        file: String,
     },
 
     /// Generates text based on a prompt
     Generate {
         /// The name of the prompt to use for generation
         name: String,
+        /// The path to the prompts file
+        #[arg(short, long)]
+        file: String,
         /// Choose the text generation backend
         #[arg(long, value_enum, default_value_t = GeneratorType::Mock)]
         generator: GeneratorType,
@@ -39,6 +46,9 @@ enum Commands {
         name: String,
         /// The text content of the prompt
         text: String,
+        /// The path to the prompts file
+        #[arg(short, long)]
+        file: String,
         /// Tags for the prompt (comma-separated)
         #[arg(short, long, value_delimiter = ',')]
         tags: Vec<String>,
@@ -48,6 +58,9 @@ enum Commands {
     },
     /// Searches for prompts by name, text, tags, or categories
     Search {
+        /// The path to the prompts file
+        #[arg(short, long)]
+        file: String,
         /// The search query string
         #[arg(short, long)]
         query: Option<String>,
@@ -59,7 +72,11 @@ enum Commands {
         categories: Vec<String>,
     },
     /// Starts the TUI
-    Tui,
+    Tui {
+        /// The path to the prompts file
+        #[arg(short, long)]
+        file: String,
+    },
 }
 
 #[tokio::main]
@@ -68,14 +85,14 @@ async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::List => {
-            let prompts = load_prompts(&cli.file)?;
+        Commands::List { file } => {
+            let prompts = load_prompts(file)?;
             for prompt in prompts {
                 println!("{}: {}", prompt.name, prompt.text);
             }
         }
-        Commands::Show { name } => {
-            let prompts = load_prompts(&cli.file)?;
+        Commands::Show { name, file } => {
+            let prompts = load_prompts(file)?;
             if let Some(prompt) = prompts.iter().find(|p| p.name == *name) {
                 println!("{}", prompt.text);
             } else {
@@ -85,9 +102,10 @@ async fn main() -> anyhow::Result<()> {
 
         Commands::Generate {
             name,
+            file,
             generator,
         } => {
-            let prompts = load_prompts(&cli.file)?;
+            let prompts = load_prompts(file)?;
             if let Some(prompt) = prompts.iter().find(|p| p.name == *name) {
                 let generated_text = match generator {
                     GeneratorType::Mock => {
@@ -107,10 +125,11 @@ async fn main() -> anyhow::Result<()> {
         Commands::Add {
             name,
             text,
+            file,
             tags,
             categories,
         } => {
-            let mut prompts = load_prompts(&cli.file).unwrap_or_else(|_| Vec::new());
+            let mut prompts = load_prompts(file).unwrap_or_else(|_| Vec::new());
             if prompts.iter().any(|p| p.name == *name) {
                 anyhow::bail!("Prompt '{}' already exists", name);
             }
@@ -120,15 +139,16 @@ async fn main() -> anyhow::Result<()> {
                 tags: tags.clone(),
                 categories: categories.clone(),
             });
-            save_prompts(&cli.file, &prompts)?;
+            save_prompts(file, &prompts)?;
             println!("Prompt '{}' added successfully.", name);
         }
         Commands::Search {
+            file,
             query,
             tags,
             categories,
         } => {
-            let prompts = load_prompts(&cli.file)?;
+            let prompts = load_prompts(file)?;
             let search_results = prompts_core::search_prompts(
                 &prompts,
                 query.as_deref().unwrap_or(""),
@@ -147,8 +167,8 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
         }
-        Commands::Tui => {
-            run_tui(&cli.file)?;
+        Commands::Tui { file } => {
+            run_tui(file)?;
         }
     }
 
