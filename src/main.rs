@@ -1,8 +1,9 @@
 use clap::Parser;
 use prompts_core::{
     GeneratorType, LLMTextGenerator, MockTextGenerator, Prompt, TextGenerator, load_prompts,
-    save_prompts, search_prompts,
+    save_prompts,
 };
+use prompts_tui::run_tui;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -57,25 +58,8 @@ enum Commands {
         #[arg(short, long, value_delimiter = ',')]
         categories: Vec<String>,
     },
-    /// Edits an existing prompt
-    Edit {
-        /// The name of the prompt to edit
-        name: String,
-        /// The new text content of the prompt
-        #[arg(short, long)]
-        text: Option<String>,
-        /// The new tags for the prompt (comma-separated)
-        #[arg(short = 'T', long, value_delimiter = ',')]
-        tags: Option<Vec<String>>,
-        /// The new categories for the prompt (comma-separated)
-        #[arg(short, long, value_delimiter = ',')]
-        categories: Option<Vec<String>>,
-    },
-    /// Deletes a prompt
-    Delete {
-        /// The name of the prompt to delete
-        name: String,
-    },
+    /// Starts the TUI
+    Tui,
 }
 
 #[tokio::main]
@@ -163,42 +147,11 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
         }
-        Commands::Edit {
-            name,
-            text,
-            tags,
-            categories,
-        } => {
-            let mut prompts = load_prompts(&cli.file)?;
-            if let Some(prompt) = prompts.iter_mut().find(|p| p.name == *name) {
-                if let Some(new_text) = text {
-                    prompt.text = new_text.clone();
-                }
-                if let Some(new_tags) = tags {
-                    prompt.tags = new_tags.clone();
-                }
-                if let Some(new_categories) = categories {
-                    prompt.categories = new_categories.clone();
-                }
-                save_prompts(&cli.file, &prompts)?;
-                println!("Prompt '{}' updated successfully.", name);
-            } else {
-                anyhow::bail!("Prompt '{}' not found", name);
-            }
-        }
-        Commands::Delete { name } => {
-            let mut prompts = load_prompts(&cli.file)?;
-            let initial_len = prompts.len();
-            prompts.retain(|p| p.name != *name);
-            if prompts.len() < initial_len {
-                save_prompts(&cli.file, &prompts)?;
-                println!("Prompt '{}' deleted successfully.", name);
-            } else {
-                anyhow::bail!("Prompt '{}' not found", name);
-            }
+        Commands::Tui => {
+            let prompts = load_prompts(&cli.file)?;
+            run_tui(prompts)?;
         }
     }
 
     Ok(())
 }
-
