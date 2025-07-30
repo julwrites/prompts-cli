@@ -149,9 +149,9 @@ fn test_edit_prompt() -> Result<(), Box<dyn std::error::Error>> {
         .arg("test_prompt")
         .arg("--text")
         .arg("This is the edited text.")
-        .arg("--tags")
+        .arg("-a")
         .arg("tag1,tag2")
-        .arg("--categories")
+        .arg("-e")
         .arg("cat1,cat2");
 
     cmd.assert()
