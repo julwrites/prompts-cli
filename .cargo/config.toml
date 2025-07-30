@@ -1,5 +1,0 @@
-[build]
-exclude = [
-    "prompts-tui",
-    "prompts-tauri",
-]
