@@ -1,34 +1,6 @@
 [workspace]
 members = [
-    ".",
-    "prompts-core",
+    "prompts-cli",
+    "prompts-tui",
+    "prompts-tauri",
 ]
-
-[package]
-name = "prompts-cli"
-version = "0.1.0"
-description = "A multi-frontend CLI tool for prompt management and text generation."
-license = "MIT"
-edition = "2024"
-
-[dependencies]
-anyhow = "1.0.98"
-clap = { version = "4.5.41", features = ["derive"] }
-serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.141"
-thiserror = "2.0.12"
-tokio = { version = "1.47.0", features = ["macros", "rt-multi-thread"] }
-async-trait = "0.1.88"
-prompts_core = { path = "prompts-core" }
-
-[[bin]]
-name = "prompts-cli"
-path = "src/main.rs"
-
-[dev-dependencies]
-tempfile = "3.20.0"
-assert_cmd = "2.0.14"
-predicates = "3.1.0"
-
-[target.'cfg(not(windows))'.dev-dependencies]
-pty-process = "0.5.3"
