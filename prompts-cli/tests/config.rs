@@ -3,9 +3,10 @@ use predicates::prelude::*;
 use std::process::Command;
 use tempfile::tempdir;
 use std::fs;
+use prompts_cli::{Prompt, Prompts, storage::JsonStorage};
 
-#[test]
-fn test_cli_config_file() -> anyhow::Result<()> {
+#[tokio::test]
+async fn test_cli_config_file() -> anyhow::Result<()> {
     let config_dir = tempdir()?;
     let config_path = config_dir.path().join("config.toml");
 
@@ -19,12 +20,18 @@ fn test_cli_config_file() -> anyhow::Result<()> {
     );
     fs::write(&config_path, config_content)?;
 
+    // Add a prompt using the prompts_api directly to the configured storage path
+    let storage = JsonStorage::new(Some(prompts_storage_path.to_path_buf()))?;
+    let prompts_api = Prompts::new(Box::new(storage));
+    let mut prompt = Prompt::new("Config test prompt content", None, None);
+    prompts_api.add_prompt(&mut prompt).await?;
+
     let mut cmd = Command::cargo_bin("prompts-cli")?;
     cmd.arg("--config").arg(&config_path).arg("list");
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("List command"));
+        .stdout(predicate::str::contains(&format!("{} - Config test prompt content", &prompt.hash[..12])));
 
     Ok(())
 }

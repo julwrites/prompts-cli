@@ -42,10 +42,10 @@ impl JsonStorage {
                 let mut default_path = dirs::config_dir().ok_or_else(|| anyhow::anyhow!("Could not find config directory"))?;
                 default_path.push("prompts-cli");
                 default_path.push("prompts");
+                std::fs::create_dir_all(&default_path)?;
                 default_path
             }
         };
-        std::fs::create_dir_all(&path)?;
         Ok(Self { storage_path: path })
     }
 }

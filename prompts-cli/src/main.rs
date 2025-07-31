@@ -2,6 +2,17 @@ use clap::Parser;
 use prompts_cli::{Prompt, Prompts, JsonStorage};
 use std::io::{self, Read};
 use std::path::PathBuf;
+use config::{Config, File, FileFormat};
+
+#[derive(Debug, serde::Deserialize)]
+struct AppConfig {
+    storage: StorageConfig,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct StorageConfig {
+    path: Option<PathBuf>,
+}
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -93,7 +104,19 @@ fn parse_key_val(s: &str) -> Result<(String, String), String> {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    let storage = JsonStorage::new(cli.config)?;
+
+    let app_config: AppConfig = if let Some(config_path) = &cli.config {
+        Config::builder()
+            .add_source(File::new(config_path.to_str().unwrap(), FileFormat::Toml))
+            .build()?.try_deserialize().unwrap()
+    } else {
+        Config::builder()
+            .add_source(File::new("config.toml", FileFormat::Toml).required(false))
+            .build()?.try_deserialize().unwrap()
+    };
+
+    let storage_path = app_config.storage.path;
+    let storage = JsonStorage::new(storage_path)?;
     let prompts_api = Prompts::new(Box::new(storage));
 
     match &cli.command {
