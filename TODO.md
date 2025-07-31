@@ -73,4 +73,4 @@ All tasks up to and including Phase 3 (Core Library and Storage, CLI, Configurat
 ## Refactoring/Maintenance
 
 - **Task 9: Refactor `tests/cli.rs`**
-    - Status: **COMPLETED**
+    - Status: **IN PROGRESS - Encountered unexpected compilation errors related to Rust 2021 edition changes and string literals. Further investigation required.**
