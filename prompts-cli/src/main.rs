@@ -1,8 +1,5 @@
 use clap::Parser;
-use prompts_cli::{
-    search_prompts, GeneratorType, LLMTextGenerator, MockTextGenerator, Prompt, Storage,
-    TextGenerator,
-};
+use prompts_cli::Prompt;
 use std::io::{self, Read};
 use std::path::PathBuf;
 
@@ -30,9 +27,6 @@ enum Commands {
     Generate {
         /// The fuzzy query to search for a prompt
         query: Option<String>,
-        /// Choose the text generation backend
-        #[arg(long, value_enum, default_value_t = GeneratorType::Mock)]
-        generator: GeneratorType,
     },
     /// Adds a new prompt
     Add {
@@ -40,10 +34,10 @@ enum Commands {
         text: Option<String>,
         /// Tags for the prompt (comma-separated)
         #[arg(short, long, value_delimiter = ',')]
-        tags: Vec<String>,
+        tags: Option<Vec<String>>,
         /// Categories for the prompt (comma-separated)
         #[arg(short, long, value_delimiter = ',')]
-        categories: Vec<String>,
+        categories: Option<Vec<String>>,
     },
     /// Edits an existing prompt
     Edit {
@@ -81,50 +75,17 @@ fn get_input(input: Option<String>, prompt_message: &str) -> anyhow::Result<Stri
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    let storage = Storage::new(cli.config)?;
 
     match &cli.command {
         Commands::List => {
-            let prompts = storage.load_prompts()?;
-            for prompt in prompts {
-                println!("{} - {}", &prompt.hash[..12], prompt.text);
-            }
+            println!("List command");
         }
         Commands::Show { query } => {
-            let query = get_input(query.clone(), "Enter a query to search for a prompt:")?;
-            let prompts = storage.load_prompts()?;
-            let search_results = search_prompts(&prompts, &query, &[], &[]);
-
-            if search_results.len() == 1 {
-                println!("{}", search_results[0].text);
-            } else {
-                let result_json = serde_json::to_string_pretty(&search_results)?;
-                println!("{}", result_json);
-            }
+            println!("Show command");
         }
 
-        Commands::Generate { query, generator } => {
-            let query = get_input(query.clone(), "Enter a query to search for a prompt:")?;
-            let prompts = storage.load_prompts()?;
-            let search_results = search_prompts(&prompts, &query, &[], &[]);
-
-            if search_results.len() == 1 {
-                let prompt = search_results[0];
-                let generated_text = match generator {
-                    GeneratorType::Mock => {
-                        let generator = MockTextGenerator;
-                        generator.generate(&prompt.text).await
-                    }
-                    GeneratorType::Llm => {
-                        let generator = LLMTextGenerator;
-                        generator.generate(&prompt.text).await
-                    }
-                };
-                println!("{}", generated_text);
-            } else {
-                let result_json = serde_json::to_string_pretty(&search_results)?;
-                println!("{}", result_json);
-            }
+        Commands::Generate { query } => {
+            println!("Generate command");
         }
         Commands::Add {
             text,
@@ -132,14 +93,8 @@ async fn main() -> anyhow::Result<()> {
             categories,
         } => {
             let text = get_input(text.clone(), "Enter the prompt text:")?;
-            let mut prompt = Prompt {
-                hash: "".to_string(),
-                text,
-                tags: tags.clone(),
-                categories: categories.clone(),
-            };
-            storage.save_prompt(&mut prompt)?;
-            println!("Prompt added successfully with hash: {}", &prompt.hash[..12]);
+            let _prompt = Prompt::new(&text, tags.clone(), categories.clone());
+            println!("Add command");
         }
         Commands::Edit {
             query,
@@ -147,42 +102,10 @@ async fn main() -> anyhow::Result<()> {
             tags,
             categories,
         } => {
-            let query = get_input(query.clone(), "Enter a query to find the prompt to edit:")?;
-            let prompts = storage.load_prompts()?;
-            let search_results = search_prompts(&prompts, &query, &[], &[]);
-
-            if search_results.len() == 1 {
-                let old_prompt = search_results[0];
-                storage.delete_prompt(&old_prompt.hash)?;
-
-                let mut new_prompt = Prompt {
-                    hash: "".to_string(),
-                    text: text.clone().unwrap_or_else(|| old_prompt.text.clone()),
-                    tags: tags.clone().unwrap_or_else(|| old_prompt.tags.clone()),
-                    categories: categories
-                        .clone()
-                        .unwrap_or_else(|| old_prompt.categories.clone()),
-                };
-                storage.save_prompt(&mut new_prompt)?;
-                println!("Prompt {} updated to {}", &old_prompt.hash[..12], &new_prompt.hash[..12]);
-            } else {
-                let result_json = serde_json::to_string_pretty(&search_results)?;
-                println!("{}", result_json);
-            }
+            println!("Edit command");
         }
         Commands::Delete { query } => {
-            let query = get_input(query.clone(), "Enter a query to find the prompt to delete:")?;
-            let prompts = storage.load_prompts()?;
-            let search_results = search_prompts(&prompts, &query, &[], &[]);
-
-            if search_results.len() == 1 {
-                let prompt = search_results[0];
-                storage.delete_prompt(&prompt.hash)?;
-                println!("Prompt {} deleted successfully.", &prompt.hash[..12]);
-            } else {
-                let result_json = serde_json::to_string_pretty(&search_results)?;
-                println!("{}", result_json);
-            }
+            println!("Delete command");
         }
     }
 
