@@ -2,7 +2,7 @@ use assert_cmd::prelude::*;
 use predicates::prelude::*;
 use std::process::Command;
 use tempfile::tempdir;
-use prompts_cli::{Prompt, Storage};
+use prompts_cli::{Prompt, storage::{Storage, JsonStorage}};
 use std::fs;
 use sha2::{Digest, Sha256};
 
@@ -13,7 +13,7 @@ fn calculate_hash(text: &str) -> String {
 }
 
 #[test]
-fn test_cli_add() -> Result<(), Box<dyn std::error::Error>> {
+fn test_cli_add() -> anyhow::Result<()> {
     let dir = tempdir()?;
     let storage_path = dir.path();
 
@@ -32,30 +32,25 @@ fn test_cli_add() -> Result<(), Box<dyn std::error::Error>> {
         .success()
         .stdout(predicate::str::contains(&format!("Prompt added successfully with hash: {}", &expected_hash[..12])));
 
-    let prompt_path = storage_path.join("prompts").join(format!("{}.json", expected_hash));
+    let prompt_path = storage_path.join(format!("{}.json", expected_hash));
     assert!(prompt_path.exists());
 
     let content = fs::read_to_string(prompt_path)?;
     let prompt: Prompt = serde_json::from_str(&content)?;
-    assert_eq!(prompt.text, "This is a new prompt.");
-    assert_eq!(prompt.tags, vec!["tag1", "tag2"]);
-    assert_eq!(prompt.categories, vec!["cat1", "cat2"]);
+    assert_eq!(prompt.content, "This is a new prompt.");
+    assert_eq!(prompt.tags, Some(vec!["tag1".to_string(), "tag2".to_string()]));
+    assert_eq!(prompt.categories, Some(vec!["cat1".to_string(), "cat2".to_string()]));
 
     Ok(())
 }
 
 #[test]
-fn test_cli_list() -> Result<(), Box<dyn std::error::Error>> {
+fn test_cli_list() -> anyhow::Result<()> {
     let dir = tempdir()?;
     let storage_path = dir.path();
-    let storage = Storage::new(Some(storage_path.to_path_buf()))?;
+    let storage = JsonStorage::new(Some(storage_path.to_path_buf()))?;
 
-    let mut prompt = Prompt {
-        hash: "".to_string(),
-        text: "A prompt to list".to_string(),
-        tags: vec![],
-        categories: vec![],
-    };
+    let mut prompt = Prompt::new("A prompt to list", None, None);
     storage.save_prompt(&mut prompt)?;
 
     let mut cmd = Command::cargo_bin("prompts-cli")?;
@@ -71,17 +66,12 @@ fn test_cli_list() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn test_cli_show() -> Result<(), Box<dyn std::error::Error>> {
+fn test_cli_show() -> anyhow::Result<()> {
     let dir = tempdir()?;
     let storage_path = dir.path();
-    let storage = Storage::new(Some(storage_path.to_path_buf()))?;
+    let storage = JsonStorage::new(Some(storage_path.to_path_buf()))?;
 
-    let mut prompt = Prompt {
-        hash: "".to_string(),
-        text: "A prompt to show".to_string(),
-        tags: vec![],
-        categories: vec![],
-    };
+    let mut prompt = Prompt::new("A prompt to show", None, None);
     storage.save_prompt(&mut prompt)?;
 
     let mut cmd = Command::cargo_bin("prompts-cli")?;
@@ -98,14 +88,14 @@ fn test_cli_show() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn test_cli_show_multiple() -> Result<(), Box<dyn std::error::Error>> {
+fn test_cli_show_multiple() -> anyhow::Result<()> {
     let dir = tempdir()?;
     let storage_path = dir.path();
-    let storage = Storage::new(Some(storage_path.to_path_buf()))?;
+    let storage = JsonStorage::new(Some(storage_path.to_path_buf()))?;
 
-    let mut prompt1 = Prompt { hash: "".to_string(), text: "First show prompt".to_string(), tags: vec![], categories: vec![] };
+    let mut prompt1 = Prompt::new("First show prompt", None, None);
     storage.save_prompt(&mut prompt1)?;
-    let mut prompt2 = Prompt { hash: "".to_string(), text: "Second show prompt".to_string(), tags: vec![], categories: vec![] };
+    let mut prompt2 = Prompt::new("Second show prompt", None, None);
     storage.save_prompt(&mut prompt2)?;
 
     let mut cmd = Command::cargo_bin("prompts-cli")?;
@@ -119,19 +109,19 @@ fn test_cli_show_multiple() -> Result<(), Box<dyn std::error::Error>> {
     let prompts: Vec<Prompt> = serde_json::from_str(&stdout)?;
 
     assert_eq!(prompts.len(), 2);
-    assert!(prompts.iter().any(|p| p.text == "First show prompt"));
-    assert!(prompts.iter().any(|p| p.text == "Second show prompt"));
+    assert!(prompts.iter().any(|p| p.content == "First show prompt"));
+    assert!(prompts.iter().any(|p| p.content == "Second show prompt"));
 
     Ok(())
 }
 
 #[test]
-fn test_cli_delete() -> Result<(), Box<dyn std::error::Error>> {
+fn test_cli_delete() -> anyhow::Result<()> {
     let dir = tempdir()?;
     let storage_path = dir.path();
-    let storage = Storage::new(Some(storage_path.to_path_buf()))?;
+    let storage = JsonStorage::new(Some(storage_path.to_path_buf()))?;
 
-    let mut prompt = Prompt { hash: "".to_string(), text: "A prompt to delete".to_string(), tags: vec![], categories: vec![] };
+    let mut prompt = Prompt::new("A prompt to delete", None, None);
     storage.save_prompt(&mut prompt)?;
 
     let mut cmd = Command::cargo_bin("prompts-cli")?;
@@ -144,19 +134,19 @@ fn test_cli_delete() -> Result<(), Box<dyn std::error::Error>> {
         .success()
         .stdout(predicate::str::contains(&format!("Prompt {} deleted successfully.", &prompt.hash[..12])));
 
-    let prompt_path = storage.get_path().join(format!("{}.json", prompt.hash));
+    let prompt_path = storage_path.join("prompts").join(format!("{}.json", prompt.hash));
     assert!(!prompt_path.exists());
 
     Ok(())
 }
 
 #[test]
-fn test_cli_edit() -> Result<(), Box<dyn std::error::Error>> {
+fn test_cli_edit() -> anyhow::Result<()> {
     let dir = tempdir()?;
     let storage_path = dir.path();
-    let storage = Storage::new(Some(storage_path.to_path_buf()))?;
+    let storage = JsonStorage::new(Some(storage_path.to_path_buf()))?;
 
-    let mut prompt = Prompt { hash: "".to_string(), text: "A prompt to edit".to_string(), tags: vec![], categories: vec![] };
+    let mut prompt = Prompt::new("A prompt to edit", None, None);
     storage.save_prompt(&mut prompt)?;
     let old_hash = prompt.hash.clone();
 
@@ -173,14 +163,14 @@ fn test_cli_edit() -> Result<(), Box<dyn std::error::Error>> {
         .success()
         .stdout(predicate::str::contains(&format!("Prompt {} updated to {}", &old_hash[..12], &new_hash[..12])));
 
-    let old_prompt_path = storage.get_path().join(format!("{}.json", old_hash));
+    let old_prompt_path = storage_path.join("prompts").join(format!("{}.json", old_hash));
     assert!(!old_prompt_path.exists());
-    let new_prompt_path = storage.get_path().join(format!("{}.json", new_hash));
+    let new_prompt_path = storage_path.join(format!("{}.json", new_hash));
     assert!(new_prompt_path.exists());
 
     let content = fs::read_to_string(new_prompt_path)?;
     let edited_prompt: Prompt = serde_json::from_str(&content)?;
-    assert_eq!(edited_prompt.text, "An edited prompt");
+    assert_eq!(edited_prompt.content, "An edited prompt");
 
     Ok(())
 }

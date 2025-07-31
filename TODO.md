@@ -30,11 +30,13 @@ This document outlines the implementation plan for the `prompts-cli` project, ba
 - **Task 5: Implement fuzzy search**
     - Sub-task: Use the `fuzzy-matcher` crate to implement fuzzy search for the `show`, `edit`, and `delete` commands.
     - Test: Write a unit test for the fuzzy search logic to ensure that it is working correctly.
+    - **COMPLETED**
 
 - **Task 6: Implement templating**
     - Sub-task: Use the `tera` crate to implement templating for the `generate` command.
     - Sub-task: Implement the `--variable` flag for the `generate` command.
     - Test: Write a unit test for the templating logic to ensure that it is working correctly.
+    - **COMPLETED**
 
 ## Phase 3: Configuration and Import/Export
 
@@ -42,9 +44,11 @@ This document outlines the implementation plan for the `prompts-cli` project, ba
     - Sub-task: Use the `toml` crate to parse the configuration file.
     - Sub-task: Implement the `--config` flag to allow users to specify a custom configuration file.
     - Test: Write a unit test to ensure that the configuration file is parsed correctly.
+    - **COMPLETED**
 
 - **Task 8: Implement import/export**
     - Sub-task: Implement the `import` and `export` commands.
     - Test: Write integration tests for the `import` and `export` commands to ensure that they are working correctly.
+    - **COMPLETED**
 
 
