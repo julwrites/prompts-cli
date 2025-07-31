@@ -47,10 +47,4 @@ This document outlines the implementation plan for the `prompts-cli` project, ba
     - Sub-task: Implement the `import` and `export` commands.
     - Test: Write integration tests for the `import` and `export` commands to ensure that they are working correctly.
 
-## Phase 4: TUI
 
-- **Task 9: Implement the TUI**
-    - Sub-task: Use the `ratatui` and `crossterm` crates to implement the TUI.
-    - Sub-task: Implement the prompt list, content view, and search bar.
-    - Sub-task: Implement the event handling logic.
-    - Test: Write component tests, event handling tests, and snapshot tests for the TUI.

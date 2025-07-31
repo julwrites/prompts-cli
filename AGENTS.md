@@ -18,7 +18,7 @@ This repository contains the core logic and the command-line interface (CLI) for
 2.  **Write Tests First:** For any new feature, write a failing test that clearly defines the desired behavior.
 3.  **Implement the Feature:** Write the minimum amount of code required to make the test pass.
 4.  **Run All Tests:** Ensure that all tests, including unit and integration tests, pass on all supported platforms.
-5.  **Update Dependent Repositories:** If you have made any changes to the public API of the library crate, you must update the TUI, Neovim, and Tauri repositories to reflect these changes.
+5.  **Update Dependent Repositories:** If you have made any changes to the public API of the library crate, you must update the other repositories to reflect these changes.
 
 ## Key Commands
 

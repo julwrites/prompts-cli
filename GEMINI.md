@@ -1,16 +1,16 @@
 # Gemini Development Guide: Prompts CLI
 
-This document guides the development of the Prompts CLI tool, a multi-frontend Rust application for prompt management.
+This document guides the development of the Prompts CLI tool, a Rust application for prompt management.
 
 ## Project Overview
 
-The project is a Rust-based CLI tool with multiple frontends (CLI, TUI, Tauri, Neovim plugin). The core logic is in the `prompts-cli` crate, and each frontend is a separate crate that uses the core crate. This allows for a modular and maintainable architecture.
+The project is a Rust-based CLI tool. The core logic is in the `prompts-cli` crate, which is a library, and the CLI frontend is a separate crate that uses the core crate. This allows for a modular and maintainable architecture.
 
 ## Core Tenets
 
-- **Rust for Performance:** The core logic and all frontends will be written in Rust to ensure high performance and cross-platform compatibility.
+- **Rust for Performance:** The core logic and frontend will be written in Rust to ensure high performance and cross-platform compatibility.
 - **TDD Workflow:** Development will follow a strict Test-Driven Development (TDD) approach. Every new feature will start with a failing test.
-- **Multi-Frontend Architecture:** The application will have a core library crate and multiple binary crates for the different frontends. This will keep the concerns separate and the codebase clean.
+- **Library-First Architecture:** The application will have a core library crate and a binary crate for the frontend. This will keep the concerns separate and the codebase clean.
 - **User-Centric Design:** The CLI will be designed with the user in mind, providing clear and concise output, helpful error messages, and comprehensive documentation.
 - **Cross-Platform Compatibility:** The application will be tested on Linux, macOS, and Windows to ensure it works seamlessly across all major platforms.
 
