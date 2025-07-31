@@ -3,7 +3,7 @@ use predicates::prelude::*;
 use std::process::Command;
 use tempfile::tempdir;
 use std::fs;
-use prompts_cli::{Prompt, storage::{Storage, JsonStorage}};
+use prompts_cli::{Prompt, storage::Storage};
 
 #[tokio::test]
 async fn test_cli_import_export() -> anyhow::Result<()> {

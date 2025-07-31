@@ -1,11 +1,11 @@
 use assert_cmd::prelude::*;
 use predicates::prelude::*;
-use std::process::Command;
-use tempfile::tempdir;
+use prompts_cli::{storage::JsonStorage, Prompt};
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::PathBuf;
-use prompts_cli::{Prompt, storage::JsonStorage};
-use sha2::{Digest, Sha256};
+use std::process::Command;
+use tempfile::tempdir;
 
 fn calculate_hash(text: &str) -> String {
     let mut hasher = Sha256::new();
@@ -27,7 +27,7 @@ impl CliTestEnv {
         let prompts_storage_path = prompts_storage_dir.path().to_path_buf();
 
         let config_content = format!(
-            "[storage]\npath = \"{}"",
+            "[storage]\npath = \"{}\"",
             prompts_storage_path.to_string_lossy()
         );
         fs::write(&config_path, config_content)?;
@@ -56,7 +56,10 @@ fn test_cli_add() -> anyhow::Result<()> {
     let expected_hash = calculate_hash("This is a new prompt.");
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains(&format!("Prompt added successfully with hash: {}", &expected_hash[..12])));
+        .stdout(predicate::str::contains(&format!(
+            "Prompt added successfully with hash: {}",
+            &expected_hash[..12]
+        )));
 
     let prompt_path = env.storage_path.join(format!("{}.json ", expected_hash));
     assert!(prompt_path.exists());
@@ -64,8 +67,14 @@ fn test_cli_add() -> anyhow::Result<()> {
     let content = fs::read_to_string(prompt_path)?;
     let prompt: Prompt = serde_json::from_str(&content)?;
     assert_eq!(prompt.content, "This is a new prompt.");
-    assert_eq!(prompt.tags, Some(vec!["tag1".to_string(), "tag2".to_string()]));
-    assert_eq!(prompt.categories, Some(vec!["cat1".to_string(), "cat2".to_string()]));
+    assert_eq!(
+        prompt.tags,
+        Some(vec!["tag1".to_string(), "tag2".to_string()])
+    );
+    assert_eq!(
+        prompt.categories,
+        Some(vec!["cat1".to_string(), "cat2".to_string()])
+    );
 
     Ok(())
 }
@@ -79,29 +88,35 @@ fn test_cli_list() -> anyhow::Result<()> {
     storage.save_prompt(&mut prompt)?;
 
     let mut cmd = Command::cargo_bin("prompts-cli")?;
-    cmd.arg("--config ")
-        .arg(&env.config_path)
-        .arg("list");
+    cmd.arg("--config ").arg(&env.config_path).arg("list");
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains(&format!("{} - A prompt to list ", &prompt.hash[..12])));
+        .stdout(predicate::str::contains(&format!(
+            "{} - A prompt to list ",
+            &prompt.hash[..12]
+        )));
 
     let mut cmd = Command::cargo_bin("prompts-cli")?;
     cmd.arg("--config ")
         .arg(&env.config_path)
         .arg("list")
-        .arg("--tags ").arg("tagA");
+        .arg("--tags ")
+        .arg("tagA");
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains(&format!("{} - A prompt to list ", &prompt.hash[..12])));
+        .stdout(predicate::str::contains(&format!(
+            "{} - A prompt to list ",
+            &prompt.hash[..12]
+        )));
 
     let mut cmd = Command::cargo_bin("prompts-cli")?;
     cmd.arg("--config ")
         .arg(&env.config_path)
         .arg("list")
-        .arg("--tags ").arg("tagB");
+        .arg("--tags ")
+        .arg("tagB");
 
     cmd.assert()
         .success()
@@ -136,7 +151,7 @@ fn test_cli_show_multiple() -> anyhow::Result<()> {
     let env = CliTestEnv::new()?;
     let storage = JsonStorage::new(Some(env.storage_path.to_path_buf()))?;
 
-    let mut prompt1 = Prompt::new("First show prompt ", None, None);;
+    let mut prompt1 = Prompt::new("First show prompt ", None, None);
     storage.save_prompt(&mut prompt1)?;
     let mut prompt2 = Prompt::new("Second show prompt ", None, None);
     storage.save_prompt(&mut prompt2)?;
@@ -174,7 +189,10 @@ fn test_cli_delete() -> anyhow::Result<()> {
 
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains(&format!("Prompt {} deleted successfully.", &prompt.hash[..12])));
+        .stdout(predicate::str::contains(&format!(
+            "Prompt {} deleted successfully.",
+            &prompt.hash[..12]
+        )));
 
     let prompt_path = env.storage_path.join(format!("{}.json ", prompt.hash));
     assert!(!prompt_path.exists());
@@ -204,7 +222,11 @@ fn test_cli_edit() -> anyhow::Result<()> {
     let new_hash = calculate_hash("An edited prompt ");
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains(&format!("Prompt {} updated to {}", &old_hash[..12], &new_hash[..12])));
+        .stdout(predicate::str::contains(&format!(
+            "Prompt {} updated to {}",
+            &old_hash[..12],
+            &new_hash[..12]
+        )));
 
     let old_prompt_path = env.storage_path.join(format!("{}.json ", old_hash));
     assert!(!old_prompt_path.exists());
@@ -214,7 +236,11 @@ fn test_cli_edit() -> anyhow::Result<()> {
     let content = fs::read_to_string(new_prompt_path)?;
     let edited_prompt: Prompt = serde_json::from_str(&content)?;
     assert_eq!(edited_prompt.content, "An edited prompt");
-            assert_eq!(edited_prompt.tags, Some(vec!["newtag1".to_string(), "newtag2".to_string()]));
+    assert_eq!(
+        edited_prompt.tags,
+        Some(vec!["newtag1".to_string(), "newtag2".to_string()])
+    );
 
     Ok(())
 }
+
