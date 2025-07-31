@@ -1,6 +1,6 @@
 # Gemini Development Guide: Prompts CLI
 
-This document guides the development of the Prompts CLI tool, a multi-frontend Rust application for prompt management and text generation.
+This document guides the development of the Prompts CLI tool, a multi-frontend Rust application for prompt management.
 
 ## Project Overview
 
@@ -25,9 +25,8 @@ The project is a Rust-based CLI tool with multiple frontends (CLI, TUI, Tauri, N
 
 - **Rust:** The primary programming language.
 - **Clap:** For parsing command-line arguments.
-- **Ratatui:** For the Terminal User Interface (TUI).
-- **Tauri:** For the desktop application.
-- **Neovim RPC:** For the Neovim plugin.
+- **anyhow & thiserror:** For error handling.
+- **Serde:** For serializing and deserializing data.
 
 ## Initial Setup
 
