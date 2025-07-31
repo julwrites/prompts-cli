@@ -69,3 +69,8 @@ All tasks up to and including Phase 3 (Core Library and Storage, CLI, Configurat
     - Sub-task: Implement the `export` command.
         - Test: `test_cli_import_export` - Verify prompts are exported to a directory.
     - **COMPLETED**
+
+## Refactoring/Maintenance
+
+- **Task 9: Refactor `tests/cli.rs`**
+    - Status: **COMPLETED**
