@@ -1,23 +1,17 @@
-name: Staging CI
+name: Cargo Lock
 
 on:
-  workflow_run:
-    workflows: ["Test"]
-    types:
-      - completed
+  push:
     branches:
       - staging
 
 jobs:
   update-lockfile:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # We need to check out the specific commit that triggered the workflow run
-          ref: ${{ github.event.workflow_run.head_sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Rust toolchain
