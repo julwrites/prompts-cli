@@ -9,11 +9,6 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@634954e715d2bff1a027af55dca62438b71de3c8/v2
-        with:
-          egress-policy: audit
-
       - name: Run Release Please
         uses: google-github-actions/release-please-action@v4
         with:
