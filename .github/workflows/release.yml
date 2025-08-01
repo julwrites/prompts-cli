@@ -30,11 +30,13 @@ jobs:
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
     - name: Run cargo-release
-        run: cargo release patch --no-confirm --verbose -p prompts-cli
+      run: cargo release patch --no-confirm --verbose -p prompts-cli --no-push
 
-      - name: Create Pull Request
-        run: |
-          TAG_NAME=$(git describe --tags --abbrev=0)
-          gh pr create --base main --head $TAG_NAME --title "Release $TAG_NAME" --body "Release $TAG_NAME"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Create Pull Request
+      run: |
+        TAG_NAME=$(git describe --tags --abbrev=0)
+        git checkout -b "release/$TAG_NAME"
+        git push origin "release/$TAG_NAME"
+        gh pr create --base main --head "release/$TAG_NAME" --title "Release $TAG_NAME" --body "Release $TAG_NAME"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
