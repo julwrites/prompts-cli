@@ -23,7 +23,7 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
 
     - name: Install cargo-release
-      run: cargo install cargo-release
+      run: cargo install cargo-release --locked
 
     - name: Configure git
       run: |
