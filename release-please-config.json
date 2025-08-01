@@ -1,8 +1,0 @@
-{
-  "packages": {
-    "prompts-cli": {
-      "package_name": "prompts-cli",
-      "release_type": "rust"
-    }
-  }
-}
