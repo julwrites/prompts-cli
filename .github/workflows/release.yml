@@ -1,34 +1,23 @@
 name: Release
 
 on:
-  push:
+  pull_request:
+    types:
+      - closed
     branches:
       - main
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    if: "contains(github.event.head_commit.message, 'chore(release)')"
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'staging'
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Configure git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Tag and push
-        run: |
-          VERSION=$(grep '^version' prompts-cli/Cargo.toml | sed -E 's/version = "(.*)"/\1/')
-          TAG_NAME="prompts-cli-v$VERSION"
-          git tag $TAG_NAME
-          git push origin $TAG_NAME
 
       - name: Publish to crates.io
         env:
@@ -40,4 +29,4 @@ jobs:
           TAG_NAME=$(git describe --tags --abbrev=0)
           gh release create $TAG_NAME --notes "Release $TAG_NAME"
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
