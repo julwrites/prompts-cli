@@ -1,43 +1,32 @@
 name: Release
 
 on:
-  push:
+  pull_request:
+    types:
+      - closed
     branches:
       - main
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'staging'
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
 
-    - name: Print version before release
-      run: grep version prompts-cli/Cargo.toml
+      - name: Publish to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p prompts-cli
 
-    - name: Install cargo-release
-      run: cargo install cargo-release --locked
-
-    - name: Configure git
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-    - name: Run cargo-release
-      run: cargo release patch --no-confirm --verbose -p prompts-cli --no-push --no-publish --execute
-
-    - name: Create Pull Request
-      run: |
-        TAG_NAME=$(git describe --tags --abbrev=0)
-        git checkout -b "release/$TAG_NAME"
-        git push origin "release/$TAG_NAME"
-        git push origin "$TAG_NAME"
-        gh pr create --base main --head "release/$TAG_NAME" --title "Release $TAG_NAME" --body "Release $TAG_NAME"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release
+        run: |
+          TAG_NAME=$(git describe --tags --abbrev=0)
+          gh release create $TAG_NAME --notes "Release $TAG_NAME"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
