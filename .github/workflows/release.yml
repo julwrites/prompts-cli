@@ -5,31 +5,32 @@ on:
     branches:
       - main
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
-  publish-cli:
+  release:
     runs-on: ubuntu-latest
+    # This is to prevent the workflow from running on commits made by the release bot
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
     - uses: actions/checkout@v4
+      with:
+        # We need to fetch all history and tags for cargo-release
+        fetch-depth: 0
+        # GITHUB_TOKEN has write access to the repo, which is needed to push the new tag.
+        # The repository settings must allow GitHub Actions to create and approve pull requests.
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install Rust toolchain
       uses: dtolnay/rust-toolchain@stable
 
-    - name: Check if version already published
-      id: check_version
+    - name: Install cargo-release
+      run: cargo install cargo-release --locked
+
+    - name: Configure git
       run: |
-        CRATE_NAME=$(grep -m 1 name prompts-cli/Cargo.toml | sed -E 's/name = "([^"]+)"/\1/')
-        CRATE_VERSION=$(grep -m 1 version prompts-cli/Cargo.toml | sed -E 's/version = "([^"]+)"/\1/')
-        if cargo search --limit 1 $CRATE_NAME | grep "^${CRATE_NAME} = \"${CRATE_VERSION}\""; then
-          echo "Crate version ${CRATE_VERSION} already published. Skipping publish."
-          echo "skip_publish=true" >> $GITHUB_OUTPUT
-        else
-          echo "skip_publish=false" >> $GITHUB_OUTPUT
-        fi
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-    - name: Publish to crates.io
-      if: steps.check_version.outputs.skip_publish == 'false'
-      run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }} -p prompts-cli
-
+    - name: Run cargo-release
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      run: cargo release patch --execute --no-confirm -p prompts-cli
