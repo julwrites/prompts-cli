@@ -2,6 +2,10 @@
 
 This document outlines the implementation plan for the `prompts-cli` project, based on the requirements in the PRD.
 
+## Current Task Status Summary
+
+All tasks up to and including Phase 3 (Core Library and Storage, CLI, Configuration and Import/Export) are **COMPLETED**.
+
 ## Phase 1: Core Library and Storage
 
 - **Task 1: Define the `Prompt` struct**
@@ -65,3 +69,8 @@ This document outlines the implementation plan for the `prompts-cli` project, ba
     - Sub-task: Implement the `export` command.
         - Test: `test_cli_import_export` - Verify prompts are exported to a directory.
     - **COMPLETED**
+
+## Refactoring/Maintenance
+
+- **Task 9: Refactor `tests/cli.rs`**
+    - Status: **COMPLETED**

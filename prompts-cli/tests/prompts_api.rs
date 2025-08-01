@@ -1,6 +1,6 @@
 use prompts_cli::{
     Prompt,
-    storage::{Storage, JsonStorage},
+    storage::JsonStorage,
     Prompts
 };
 use tempfile::tempdir;
