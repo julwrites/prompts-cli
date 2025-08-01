@@ -1,9 +1,12 @@
 [package]
 name = "prompts-cli"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 description = "A CLI for managing prompts for large language models."
 license = "MIT"
+repository = "https://github.com/julwrites/prompts-cli"
+homepage = "https://github.com/julwrites/prompts-cli"
+documentation = "https://github.com/julwrites/prompts-cli"
 
 [dependencies]
 anyhow = "1.0.98"
