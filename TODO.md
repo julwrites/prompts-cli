@@ -2,11 +2,11 @@
 
 This plan outlines the steps to migrate from the current file-based storage to a LibSQL-based storage system, following Test-Driven Development (TDD) principles.
 
-- **Task 1: Add LibSQL dependencies**
+- **Task 1: Add LibSQL dependencies** - **COMPLETED**
     - Sub-task: Add the `libsql` crate to `prompts-cli/Cargo.toml`. Consider adding `tokio` if an async runtime is required for the `libsql` crate.
     - Test: The build should pass, and the new dependencies should be available.
 
-- **Task 2: Create `LibSQLStorage` struct and `new` function**
+- **Task 2: Create `LibSQLStorage` struct and `new` function** - **COMPLETED**
     - Sub-task: In `prompts-cli/src/storage.rs`, define a new struct `LibSQLStorage`.
     - Sub-task: Implement a `new` function for `LibSQLStorage` that takes a database path. This function will establish a connection to the LibSQL database.
     - Sub-task: The `new` function should also handle database schema creation (e.g., creating a `prompts` table).

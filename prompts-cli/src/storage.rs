@@ -3,6 +3,8 @@ use dirs;
 use sha2::{Sha256, Digest};
 use serde::{Serialize, Deserialize};
 use std::path::PathBuf;
+use libsql::Connection;
+use libsql::Builder;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Prompt {
@@ -78,5 +80,38 @@ impl Storage for JsonStorage {
             std::fs::remove_file(file_path)?;
         }
         Ok(())
+    }
+}
+
+pub struct LibSQLStorage {
+    conn: Connection,
+}
+
+impl LibSQLStorage {
+    pub async fn new(storage_path: Option<PathBuf>) -> Result<Self> {
+        let db_path = match storage_path {
+            Some(path) => path,
+            None => {
+                let mut default_path = dirs::config_dir().ok_or_else(|| anyhow::anyhow!("Could not find config directory"))?;
+                default_path.push("prompts-cli");
+                default_path.push("prompts.db");
+                default_path
+            }
+        };
+
+        let db = Builder::new_local(db_path.to_str().unwrap()).build().await?;
+        let conn = db.connect()?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS prompts (
+                hash TEXT PRIMARY KEY,
+                content TEXT NOT NULL,
+                tags TEXT,
+                categories TEXT
+            )",
+            (),
+        ).await?;
+
+        Ok(Self { conn })
     }
 }
