@@ -1,3 +1,43 @@
+# LibSQL Storage Implementation Plan (TDD)
+
+This plan outlines the steps to migrate from the current file-based storage to a LibSQL-based storage system, following Test-Driven Development (TDD) principles.
+
+- **Task 1: Add LibSQL dependencies**
+    - Sub-task: Add the `libsql` crate to `prompts-cli/Cargo.toml`. Consider adding `tokio` if an async runtime is required for the `libsql` crate.
+    - Test: The build should pass, and the new dependencies should be available.
+
+- **Task 2: Create `LibSQLStorage` struct and `new` function**
+    - Sub-task: In `prompts-cli/src/storage.rs`, define a new struct `LibSQLStorage`.
+    - Sub-task: Implement a `new` function for `LibSQLStorage` that takes a database path. This function will establish a connection to the LibSQL database.
+    - Sub-task: The `new` function should also handle database schema creation (e.g., creating a `prompts` table).
+    - Test: Write a test in `prompts-cli/tests/storage.rs` that calls `LibSQLStorage::new` and asserts that the database file is created and the `prompts` table exists.
+
+- **Task 3: Implement `save_prompt`**
+    - Test: In `prompts-cli/tests/storage.rs`, write a failing test for `save_prompt` on `LibSQLStorage`. The test should attempt to save a `Prompt` and then verify its existence directly in the database.
+    - Sub-task: Implement the `save_prompt` method for `LibSQLStorage` in `prompts-cli/src/storage.rs`. This method will insert a new prompt record into the `prompts` table.
+    - Sub-task: Ensure the test passes after implementation.
+
+- **Task 4: Implement `load_prompts`**
+    - Test: In `prompts-cli/tests/storage.rs`, write a failing test for `load_prompts` on `LibSQLStorage`. The test should save a known set of prompts and then fail to load them.
+    - Sub-task: Implement the `load_prompts` method for `LibSQLStorage`. This method will query the `prompts` table and return a `Vec<Prompt>`.
+    - Sub-task: Ensure the test passes after implementation.
+
+- **Task 5: Implement `delete_prompt`**
+    - Test: In `prompts-cli/tests/storage.rs`, write a failing test for `delete_prompt` on `LibSQLStorage`. The test should save a prompt, attempt to delete it, and then assert it's no longer in the database.
+    - Sub-task: Implement the `delete_prompt` method for `LibSQLStorage`. This method will delete a prompt from the `prompts` table based on its hash.
+    - Sub-task: Ensure the test passes after implementation.
+
+- **Task 6: Integrate `LibSQLStorage` into the application**
+    - Sub-task: Modify the application's entry point (likely in `prompts-cli/src/main.rs` and `prompts-cli/src/lib.rs`) to use `LibSQLStorage` instead of `JsonStorage`.
+    - Sub-task: This may involve adding a configuration option to `config.rs` to allow the user to select the storage backend and specify the database path. For now, a direct replacement is sufficient to prove the concept.
+    - Test: Manually run the CLI to ensure all commands (`add`, `list`, `show`, `edit`, `delete`) work correctly with the new `LibSQLStorage` backend. Existing integration tests should be adapted and should all pass.
+
+- **Task 7: Refactor and clean up**
+    - Sub-task: Remove the `JsonStorage` implementation if it's no longer needed, or keep it as an alternative backend.
+    - Sub-task: Review the code for any necessary refactoring and add documentation for the new storage implementation.
+
+---
+
 # TODO for `prompts-cli`
 
 This document outlines the implementation plan for the `prompts-cli` project, based on the requirements in the PRD.
