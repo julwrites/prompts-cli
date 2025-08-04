@@ -3,7 +3,7 @@ use prompts_cli::{
     storage::{Storage, JsonStorage, LibSQLStorage}
 };
 use tempfile::tempdir;
-use rusqlite::Connection;
+use libsql::Builder;
 
 #[tokio::test]
 async fn test_libsql_storage_new() -> anyhow::Result<()> {
@@ -13,10 +13,11 @@ async fn test_libsql_storage_new() -> anyhow::Result<()> {
 
     assert!(db_path.exists());
 
-    let conn = Connection::open(db_path)?;
-    let mut stmt = conn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='prompts'")?;
-    let mut rows = stmt.query([])?;
-    assert!(rows.next()?.is_some(), "prompts table should exist");
+    let db = Builder::new_local(db_path.to_str().unwrap()).build().await?;
+    let conn = db.connect()?;
+    let mut rows = conn.query("SELECT name FROM sqlite_master WHERE type='table' AND name='prompts'", ()).await?;
+    let row = rows.next().await?.unwrap();
+    assert_eq!(row.get::<String>(0)?, "prompts");
 
     Ok(())
 }
