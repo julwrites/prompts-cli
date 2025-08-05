@@ -1,8 +1,26 @@
 use prompts_cli::{
     Prompt,
-    storage::{Storage, JsonStorage}
+    storage::{Storage, JsonStorage, LibSQLStorage}
 };
 use tempfile::tempdir;
+use libsql::Builder;
+
+#[tokio::test]
+async fn test_libsql_storage_new() -> anyhow::Result<()> {
+    let dir = tempdir()?;
+    let db_path = dir.path().join("test.db");
+    let _storage = LibSQLStorage::new(Some(db_path.clone())).await?;
+
+    assert!(db_path.exists());
+
+    let db = Builder::new_local(db_path.to_str().unwrap()).build().await?;
+    let conn = db.connect()?;
+    let mut rows = conn.query("SELECT name FROM sqlite_master WHERE type='table' AND name='prompts'", ()).await?;
+    let row = rows.next().await?.unwrap();
+    assert_eq!(row.get::<String>(0)?, "prompts");
+
+    Ok(())
+}
 
 #[test]
 fn test_json_storage() -> anyhow::Result<()> {
