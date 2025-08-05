@@ -12,26 +12,26 @@ impl Prompts {
     }
 
     pub async fn add_prompt(&self, prompt: &mut crate::storage::Prompt) -> Result<()> {
-        self.storage.save_prompt(prompt)
+        self.storage.save_prompt(prompt).await
     }
 
     pub async fn list_prompts(&self) -> Result<Vec<crate::storage::Prompt>> {
-        self.storage.load_prompts()
+        self.storage.load_prompts().await
     }
 
     pub async fn show_prompt(&self, query: &str) -> Result<Vec<crate::storage::Prompt>> {
-        let prompts = self.storage.load_prompts()?;
+        let prompts = self.storage.load_prompts().await?;
         let search_results = search_prompts(&prompts, query, &[], &[]);
         Ok(search_results)
     }
 
     pub async fn edit_prompt(&self, hash: &str, new_prompt: &mut crate::storage::Prompt) -> Result<()> {
-        self.storage.delete_prompt(hash)?;
-        self.storage.save_prompt(new_prompt)
+        self.storage.delete_prompt(hash).await?;
+        self.storage.save_prompt(new_prompt).await
     }
 
     pub async fn delete_prompt(&self, hash: &str) -> Result<()> {
-        self.storage.delete_prompt(hash)
+        self.storage.delete_prompt(hash).await
     }
 }
 

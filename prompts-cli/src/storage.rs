@@ -1,4 +1,5 @@
 use anyhow::Result;
+use async_trait::async_trait;
 use dirs;
 use sha2::{Sha256, Digest};
 use serde::{Serialize, Deserialize};
@@ -26,10 +27,11 @@ impl Prompt {
     }
 }
 
+#[async_trait]
 pub trait Storage {
-    fn save_prompt(&self, prompt: &mut Prompt) -> Result<()>;
-    fn load_prompts(&self) -> Result<Vec<Prompt>>;
-    fn delete_prompt(&self, hash: &str) -> Result<()>;
+    async fn save_prompt(&self, prompt: &mut Prompt) -> Result<()>;
+    async fn load_prompts(&self) -> Result<Vec<Prompt>>;
+    async fn delete_prompt(&self, hash: &str) -> Result<()>;
 }
 
 pub struct JsonStorage {
@@ -52,21 +54,22 @@ impl JsonStorage {
     }
 }
 
+#[async_trait]
 impl Storage for JsonStorage {
-    fn save_prompt(&self, prompt: &mut Prompt) -> Result<()> {
+    async fn save_prompt(&self, prompt: &mut Prompt) -> Result<()> {
         let file_path = self.storage_path.join(format!("{}.json", prompt.hash));
         let json = serde_json::to_string_pretty(prompt)?;
-        std::fs::write(file_path, json)?;
+        tokio::fs::write(file_path, json).await?;
         Ok(())
     }
 
-    fn load_prompts(&self) -> Result<Vec<Prompt>> {
+    async fn load_prompts(&self) -> Result<Vec<Prompt>> {
         let mut prompts = Vec::new();
-        for entry in std::fs::read_dir(&self.storage_path)? {
-            let entry = entry?;
+        let mut read_dir = tokio::fs::read_dir(&self.storage_path).await?;
+        while let Some(entry) = read_dir.next_entry().await? {
             let path = entry.path();
             if path.is_file() && path.extension().map_or(false, |ext| ext == "json") {
-                let json = std::fs::read_to_string(&path)?;
+                let json = tokio::fs::read_to_string(&path).await?;
                 let prompt: Prompt = serde_json::from_str(&json)?;
                 prompts.push(prompt);
             }
@@ -74,10 +77,10 @@ impl Storage for JsonStorage {
         Ok(prompts)
     }
 
-    fn delete_prompt(&self, hash: &str) -> Result<()> {
+    async fn delete_prompt(&self, hash: &str) -> Result<()> {
         let file_path = self.storage_path.join(format!("{}.json", hash));
         if file_path.exists() {
-            std::fs::remove_file(file_path)?;
+            tokio::fs::remove_file(file_path).await?;
         }
         Ok(())
     }
@@ -113,5 +116,28 @@ impl LibSQLStorage {
         ).await?;
 
         Ok(Self { conn })
+    }
+}
+
+#[async_trait]
+impl Storage for LibSQLStorage {
+    async fn save_prompt(&self, prompt: &mut Prompt) -> Result<()> {
+        let tags = prompt.tags.as_ref().map_or(Ok(None), |t| serde_json::to_string(t).map(Some))?.unwrap_or("[]".to_string());
+        let categories = prompt.categories.as_ref().map_or(Ok(None), |c| serde_json::to_string(c).map(Some))?.unwrap_or("[]".to_string());
+
+        self.conn.execute(
+            "INSERT INTO prompts (hash, content, tags, categories) VALUES (?1, ?2, ?3, ?4)",
+            libsql::params![prompt.hash.clone(), prompt.content.clone(), tags, categories],
+        ).await?;
+
+        Ok(())
+    }
+
+    async fn load_prompts(&self) -> Result<Vec<Prompt>> {
+        todo!()
+    }
+
+    async fn delete_prompt(&self, hash: &str) -> Result<()> {
+        todo!()
     }
 }
