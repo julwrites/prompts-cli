@@ -1,5 +1,5 @@
 use clap::Parser;
-use prompts_cli::{Prompt, Prompts, JsonStorage};
+use prompts_cli::{Prompt, Prompts, JsonStorage, LibSQLStorage, Storage};
 use std::io::{self, Read};
 use std::path::PathBuf;
 use config::{Config, File, FileFormat};
@@ -11,7 +11,13 @@ struct AppConfig {
 
 #[derive(Debug, serde::Deserialize)]
 struct StorageConfig {
+    #[serde(default = "default_storage_type")]
+    r#type: String,
     path: Option<PathBuf>,
+}
+
+fn default_storage_type() -> String {
+    "json".to_string()
 }
 
 #[derive(Parser, Debug)]
@@ -116,8 +122,14 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let storage_path = app_config.storage.path;
-    let storage = JsonStorage::new(storage_path)?;
-    let prompts_api = Prompts::new(Box::new(storage));
+
+    let storage: Box<dyn Storage + Send + Sync> = match app_config.storage.r#type.as_str() {
+        "json" => Box::new(JsonStorage::new(storage_path)?),
+        "libsql" => Box::new(LibSQLStorage::new(storage_path).await?),
+        _ => return Err(anyhow::anyhow!("Invalid storage type")),
+    };
+
+    let prompts_api = Prompts::new(storage);
 
     match &cli.command {
         Commands::List => {

@@ -27,7 +27,7 @@ This plan outlines the steps to migrate from the current file-based storage to a
     - Sub-task: Implement the `delete_prompt` method for `LibSQLStorage`. This method will delete a prompt from the `prompts` table based on its hash.
     - Sub-task: Ensure the test passes after implementation.
 
-- **Task 6: Integrate `LibSQLStorage` into the application**
+- **Task 6: Integrate `LibSQLStorage` into the application** - **COMPLETED**
     - Sub-task: Modify the application's entry point (likely in `prompts-cli/src/main.rs` and `prompts-cli/src/lib.rs`) to use `LibSQLStorage` instead of `JsonStorage`.
     - Sub-task: This may involve adding a configuration option to `config.rs` to allow the user to select the storage backend and specify the database path. For now, a direct replacement is sufficient to prove the concept.
     - Test: Manually run the CLI to ensure all commands (`add`, `list`, `show`, `edit`, `delete`) work correctly with the new `LibSQLStorage` backend. Existing integration tests should be adapted and should all pass.
