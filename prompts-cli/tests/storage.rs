@@ -23,6 +23,50 @@ async fn test_libsql_storage_new() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
+async fn test_libsql_delete_prompt() -> anyhow::Result<()> {
+    let dir = tempdir()?;
+    let db_path = dir.path().join("test.db");
+    let storage = LibSQLStorage::new(Some(db_path.clone())).await?;
+
+    let mut prompt = Prompt::new("test content", None, None);
+    storage.save_prompt(&mut prompt).await?;
+
+    let prompts = storage.load_prompts().await?;
+    assert_eq!(prompts.len(), 1);
+
+    storage.delete_prompt(&prompt.hash).await?;
+
+    let prompts_after_delete = storage.load_prompts().await?;
+    assert!(prompts_after_delete.is_empty());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_libsql_load_prompts() -> anyhow::Result<()> {
+    let dir = tempdir()?;
+    let db_path = dir.path().join("test.db");
+    let storage = LibSQLStorage::new(Some(db_path.clone())).await?;
+
+    let mut prompt1 = Prompt::new("test content 1", Some(vec!["tag1".to_string()]), None);
+    storage.save_prompt(&mut prompt1).await?;
+
+    let mut prompt2 = Prompt::new("test content 2", None, Some(vec!["cat1".to_string()]));
+    storage.save_prompt(&mut prompt2).await?;
+
+    let prompts = storage.load_prompts().await?;
+    assert_eq!(prompts.len(), 2);
+
+    let p1 = prompts.iter().find(|p| p.hash == prompt1.hash).unwrap();
+    assert_eq!(p1.content, "test content 1");
+
+    let p2 = prompts.iter().find(|p| p.hash == prompt2.hash).unwrap();
+    assert_eq!(p2.content, "test content 2");
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_libsql_save_prompt() -> anyhow::Result<()> {
     let dir = tempdir()?;
     let db_path = dir.path().join("test.db");

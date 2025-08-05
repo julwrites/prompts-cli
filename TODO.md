@@ -17,12 +17,12 @@ This plan outlines the steps to migrate from the current file-based storage to a
     - Sub-task: Implement the `save_prompt` method for `LibSQLStorage` in `prompts-cli/src/storage.rs`. This method will insert a new prompt record into the `prompts` table.
     - Sub-task: Ensure the test passes after implementation.
 
-- **Task 4: Implement `load_prompts`**
+- **Task 4: Implement `load_prompts`** - **COMPLETED**
     - Test: In `prompts-cli/tests/storage.rs`, write a failing test for `load_prompts` on `LibSQLStorage`. The test should save a known set of prompts and then fail to load them.
     - Sub-task: Implement the `load_prompts` method for `LibSQLStorage`. This method will query the `prompts` table and return a `Vec<Prompt>`.
     - Sub-task: Ensure the test passes after implementation.
 
-- **Task 5: Implement `delete_prompt`**
+- **Task 5: Implement `delete_prompt`** - **COMPLETED**
     - Test: In `prompts-cli/tests/storage.rs`, write a failing test for `delete_prompt` on `LibSQLStorage`. The test should save a prompt, attempt to delete it, and then assert it's no longer in the database.
     - Sub-task: Implement the `delete_prompt` method for `LibSQLStorage`. This method will delete a prompt from the `prompts` table based on its hash.
     - Sub-task: Ensure the test passes after implementation.

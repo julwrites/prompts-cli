@@ -134,10 +134,34 @@ impl Storage for LibSQLStorage {
     }
 
     async fn load_prompts(&self) -> Result<Vec<Prompt>> {
-        todo!()
+        let mut rows = self.conn.query("SELECT hash, content, tags, categories FROM prompts", ()).await?;
+        let mut prompts = Vec::new();
+
+        while let Some(row) = rows.next().await? {
+            let hash: String = row.get(0)?;
+            let content: String = row.get(1)?;
+            let tags_str: String = row.get(2)?;
+            let categories_str: String = row.get(3)?;
+
+            let tags: Option<Vec<String>> = serde_json::from_str(&tags_str)?;
+            let categories: Option<Vec<String>> = serde_json::from_str(&categories_str)?;
+
+            prompts.push(Prompt {
+                hash,
+                content,
+                tags,
+                categories,
+            });
+        }
+
+        Ok(prompts)
     }
 
     async fn delete_prompt(&self, hash: &str) -> Result<()> {
-        todo!()
+        self.conn.execute(
+            "DELETE FROM prompts WHERE hash = ?1",
+            libsql::params![hash],
+        ).await?;
+        Ok(())
     }
 }
