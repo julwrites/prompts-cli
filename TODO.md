@@ -32,7 +32,7 @@ This plan outlines the steps to migrate from the current file-based storage to a
     - Sub-task: This may involve adding a configuration option to `config.rs` to allow the user to select the storage backend and specify the database path. For now, a direct replacement is sufficient to prove the concept.
     - Test: Manually run the CLI to ensure all commands (`add`, `list`, `show`, `edit`, `delete`) work correctly with the new `LibSQLStorage` backend. Existing integration tests should be adapted and should all pass.
 
-- **Task 7: Refactor and clean up**
+- **Task 7: Refactor and clean up** - **COMPLETED**
     - Sub-task: Remove the `JsonStorage` implementation if it's no longer needed, or keep it as an alternative backend.
     - Sub-task: Review the code for any necessary refactoring and add documentation for the new storage implementation.
 
