@@ -92,13 +92,13 @@ fn test_cli_add() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[test]
-fn test_cli_list() -> anyhow::Result<()> {
+#[tokio::test]
+async fn test_cli_list() -> anyhow::Result<()> {
     let env = CliTestEnv::new()?;
     let storage = JsonStorage::new(Some(env.storage_path.to_path_buf()))?;
 
     let mut prompt = Prompt::new("A prompt to list", Some(vec!["tagA".to_string()]), None);
-    storage.save_prompt(&mut prompt)?;
+    storage.save_prompt(&mut prompt).await?;
 
     let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
     cmd.arg("--config").arg(&env.config_path).arg("list");
@@ -117,13 +117,13 @@ fn test_cli_list() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[test]
-fn test_cli_show() -> anyhow::Result<()> {
+#[tokio::test]
+async fn test_cli_show() -> anyhow::Result<()> {
     let env = CliTestEnv::new()?;
     let storage = JsonStorage::new(Some(env.storage_path.to_path_buf()))?;
 
     let mut prompt = Prompt::new("A prompt to show", None, None);
-    storage.save_prompt(&mut prompt)?;
+    storage.save_prompt(&mut prompt).await?;
 
     let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
     cmd.arg("--config")
@@ -138,15 +138,15 @@ fn test_cli_show() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[test]
-fn test_cli_show_multiple() -> anyhow::Result<()> {
+#[tokio::test]
+async fn test_cli_show_multiple() -> anyhow::Result<()> {
     let env = CliTestEnv::new()?;
     let storage = JsonStorage::new(Some(env.storage_path.to_path_buf()))?;
 
     let mut prompt1 = Prompt::new("First show prompt", None, None);
-    storage.save_prompt(&mut prompt1)?;
+    storage.save_prompt(&mut prompt1).await?;
     let mut prompt2 = Prompt::new("Second show prompt", None, None);
-    storage.save_prompt(&mut prompt2)?;
+    storage.save_prompt(&mut prompt2).await?;
 
     let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
     cmd.arg("--config")
@@ -165,13 +165,13 @@ fn test_cli_show_multiple() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[test]
-fn test_cli_delete() -> anyhow::Result<()> {
+#[tokio::test]
+async fn test_cli_delete() -> anyhow::Result<()> {
     let env = CliTestEnv::new()?;
     let storage = JsonStorage::new(Some(env.storage_path.to_path_buf()))?;
 
     let mut prompt = Prompt::new("A prompt to delete", None, None);
-    storage.save_prompt(&mut prompt)?;
+    storage.save_prompt(&mut prompt).await?;
 
     let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
     cmd.arg("--config")
@@ -192,13 +192,13 @@ fn test_cli_delete() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[test]
-fn test_cli_edit() -> anyhow::Result<()> {
+#[tokio::test]
+async fn test_cli_edit() -> anyhow::Result<()> {
     let env = CliTestEnv::new()?;
     let storage = JsonStorage::new(Some(env.storage_path.to_path_buf()))?;
 
     let mut prompt = Prompt::new("A prompt to edit", None, None);
-    storage.save_prompt(&mut prompt)?;
+    storage.save_prompt(&mut prompt).await?;
     let old_hash = prompt.hash.clone();
 
     let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;

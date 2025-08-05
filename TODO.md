@@ -12,7 +12,7 @@ This plan outlines the steps to migrate from the current file-based storage to a
     - Sub-task: The `new` function should also handle database schema creation (e.g., creating a `prompts` table).
     - Test: Write a test in `prompts-cli/tests/storage.rs` that calls `LibSQLStorage::new` and asserts that the database file is created and the `prompts` table exists.
 
-- **Task 3: Implement `save_prompt`**
+- **Task 3: Implement `save_prompt`** - **COMPLETED**
     - Test: In `prompts-cli/tests/storage.rs`, write a failing test for `save_prompt` on `LibSQLStorage`. The test should attempt to save a `Prompt` and then verify its existence directly in the database.
     - Sub-task: Implement the `save_prompt` method for `LibSQLStorage` in `prompts-cli/src/storage.rs`. This method will insert a new prompt record into the `prompts` table.
     - Sub-task: Ensure the test passes after implementation.
