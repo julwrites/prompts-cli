@@ -1,6 +1,6 @@
 use assert_cmd::prelude::*;
 use predicates::prelude::*;
-use prompts_cli::{Prompt, storage::{JsonStorage, Storage}};
+use prompts_cli::{Prompt, storage::{JsonStorage, LibSQLStorage, Storage}};
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::PathBuf;
@@ -19,23 +19,28 @@ use tempfile::TempDir;
 struct CliTestEnv {
     _config_dir: TempDir,
     config_path: PathBuf,
-    _prompts_storage_dir: TempDir,
+    _storage_temp: TempDir,
     storage_path: PathBuf,
 }
 
 impl CliTestEnv {
-    fn new() -> anyhow::Result<Self> {
+    fn new(storage_type: &str) -> anyhow::Result<Self> {
         let config_dir = tempdir()?;
         let config_path = config_dir.path().join("config.toml");
 
-        let prompts_storage_dir = tempdir()?;
-        let prompts_storage_path = prompts_storage_dir.path().to_path_buf();
+        let storage_temp = tempdir()?;
+        let storage_path = if storage_type == "json" {
+            storage_temp.path().to_path_buf()
+        } else {
+            storage_temp.path().join("test.db")
+        };
 
         let mut config = toml::map::Map::new();
         let mut storage_config = toml::map::Map::new();
+        storage_config.insert("type".to_string(), Value::String(storage_type.to_string()));
         storage_config.insert(
             "path".to_string(),
-            Value::String(prompts_storage_path.to_string_lossy().into_owned()),
+            Value::String(storage_path.to_string_lossy().into_owned()),
         );
         config.insert("storage".to_string(), Value::Table(storage_config));
 
@@ -45,16 +50,15 @@ impl CliTestEnv {
         Ok(Self {
             _config_dir: config_dir,
             config_path,
-            _prompts_storage_dir: prompts_storage_dir,
-            storage_path: prompts_storage_path,
+            _storage_temp: storage_temp,
+            storage_path,
         })
     }
 }
 
 
-#[test]
-fn test_cli_add() -> anyhow::Result<()> {
-    let env = CliTestEnv::new()?;
+async fn test_cli_add_impl(storage_type: &str) -> anyhow::Result<()> {
+    let env = CliTestEnv::new(storage_type)?;
 
     let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
     cmd.arg("--config")
@@ -74,31 +78,58 @@ fn test_cli_add() -> anyhow::Result<()> {
             &expected_hash[..12]
         )));
 
-    let prompt_path = env.storage_path.join(format!("{}.json", expected_hash));
-    assert!(prompt_path.exists());
-
-    let content = fs::read_to_string(prompt_path)?;
-    let prompt: Prompt = serde_json::from_str(&content)?;
-    assert_eq!(prompt.content, "This is a new prompt.");
-    assert_eq!(
-        prompt.tags,
-        Some(vec!["tag1".to_string(), "tag2".to_string()])
-    );
-    assert_eq!(
-        prompt.categories,
-        Some(vec!["cat1".to_string(), "cat2".to_string()])
-    );
+    if storage_type == "json" {
+        let prompt_path = env.storage_path.join(format!("{}.json", expected_hash));
+        assert!(prompt_path.exists());
+        let content = fs::read_to_string(prompt_path)?;
+        let prompt: Prompt = serde_json::from_str(&content)?;
+        assert_eq!(prompt.content, "This is a new prompt.");
+        assert_eq!(
+            prompt.tags,
+            Some(vec!["tag1".to_string(), "tag2".to_string()])
+        );
+        assert_eq!(
+            prompt.categories,
+            Some(vec!["cat1".to_string(), "cat2".to_string()])
+        );
+    } else {
+        let storage = prompts_cli::storage::LibSQLStorage::new(Some(env.storage_path)).await?;
+        let prompts = storage.load_prompts().await?;
+        let prompt = prompts.iter().find(|p| p.hash == expected_hash).unwrap();
+        assert_eq!(prompt.content, "This is a new prompt.");
+        assert_eq!(
+            prompt.tags,
+            Some(vec!["tag1".to_string(), "tag2".to_string()])
+        );
+        assert_eq!(
+            prompt.categories,
+            Some(vec!["cat1".to_string(), "cat2".to_string()])
+        );
+    }
 
     Ok(())
 }
 
-#[test]
-fn test_cli_list() -> anyhow::Result<()> {
-    let env = CliTestEnv::new()?;
-    let storage = JsonStorage::new(Some(env.storage_path.to_path_buf()))?;
+#[tokio::test]
+async fn test_cli_add_json() -> anyhow::Result<()> {
+    test_cli_add_impl("json").await
+}
+
+#[tokio::test]
+async fn test_cli_add_libsql() -> anyhow::Result<()> {
+    test_cli_add_impl("libsql").await
+}
+
+async fn test_cli_list_impl(storage_type: &str) -> anyhow::Result<()> {
+    let env = CliTestEnv::new(storage_type)?;
+    let storage: Box<dyn Storage + Send + Sync> = if storage_type == "json" {
+        Box::new(JsonStorage::new(Some(env.storage_path.to_path_buf()))?)
+    } else {
+        Box::new(LibSQLStorage::new(Some(env.storage_path.to_path_buf())).await?)
+    };
 
     let mut prompt = Prompt::new("A prompt to list", Some(vec!["tagA".to_string()]), None);
-    storage.save_prompt(&mut prompt)?;
+    storage.save_prompt(&mut prompt).await?;
 
     let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
     cmd.arg("--config").arg(&env.config_path).arg("list");
@@ -110,20 +141,29 @@ fn test_cli_list() -> anyhow::Result<()> {
             &prompt.hash[..12]
         )));
 
-    
-
-    
-
     Ok(())
 }
 
-#[test]
-fn test_cli_show() -> anyhow::Result<()> {
-    let env = CliTestEnv::new()?;
-    let storage = JsonStorage::new(Some(env.storage_path.to_path_buf()))?;
+#[tokio::test]
+async fn test_cli_list_json() -> anyhow::Result<()> {
+    test_cli_list_impl("json").await
+}
+
+#[tokio::test]
+async fn test_cli_list_libsql() -> anyhow::Result<()> {
+    test_cli_list_impl("libsql").await
+}
+
+async fn test_cli_show_impl(storage_type: &str) -> anyhow::Result<()> {
+    let env = CliTestEnv::new(storage_type)?;
+    let storage: Box<dyn Storage + Send + Sync> = if storage_type == "json" {
+        Box::new(JsonStorage::new(Some(env.storage_path.to_path_buf()))?)
+    } else {
+        Box::new(LibSQLStorage::new(Some(env.storage_path.to_path_buf())).await?)
+    };
 
     let mut prompt = Prompt::new("A prompt to show", None, None);
-    storage.save_prompt(&mut prompt)?;
+    storage.save_prompt(&mut prompt).await?;
 
     let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
     cmd.arg("--config")
@@ -138,15 +178,28 @@ fn test_cli_show() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[test]
-fn test_cli_show_multiple() -> anyhow::Result<()> {
-    let env = CliTestEnv::new()?;
-    let storage = JsonStorage::new(Some(env.storage_path.to_path_buf()))?;
+#[tokio::test]
+async fn test_cli_show_json() -> anyhow::Result<()> {
+    test_cli_show_impl("json").await
+}
+
+#[tokio::test]
+async fn test_cli_show_libsql() -> anyhow::Result<()> {
+    test_cli_show_impl("libsql").await
+}
+
+async fn test_cli_show_multiple_impl(storage_type: &str) -> anyhow::Result<()> {
+    let env = CliTestEnv::new(storage_type)?;
+    let storage: Box<dyn Storage + Send + Sync> = if storage_type == "json" {
+        Box::new(JsonStorage::new(Some(env.storage_path.to_path_buf()))?)
+    } else {
+        Box::new(LibSQLStorage::new(Some(env.storage_path.to_path_buf())).await?)
+    };
 
     let mut prompt1 = Prompt::new("First show prompt", None, None);
-    storage.save_prompt(&mut prompt1)?;
+    storage.save_prompt(&mut prompt1).await?;
     let mut prompt2 = Prompt::new("Second show prompt", None, None);
-    storage.save_prompt(&mut prompt2)?;
+    storage.save_prompt(&mut prompt2).await?;
 
     let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
     cmd.arg("--config")
@@ -165,13 +218,27 @@ fn test_cli_show_multiple() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[test]
-fn test_cli_delete() -> anyhow::Result<()> {
-    let env = CliTestEnv::new()?;
-    let storage = JsonStorage::new(Some(env.storage_path.to_path_buf()))?;
+#[tokio::test]
+async fn test_cli_show_multiple_json() -> anyhow::Result<()> {
+    test_cli_show_multiple_impl("json").await
+}
+
+#[tokio::test]
+async fn test_cli_show_multiple_libsql() -> anyhow::Result<()> {
+    test_cli_show_multiple_impl("libsql").await
+}
+
+async fn test_cli_delete_impl(storage_type: &str) -> anyhow::Result<()> {
+    let env = CliTestEnv::new(storage_type)?;
+    let storage: Box<dyn Storage + Send + Sync> = if storage_type == "json" {
+        Box::new(JsonStorage::new(Some(env.storage_path.to_path_buf()))?)
+    } else {
+        Box::new(LibSQLStorage::new(Some(env.storage_path.to_path_buf())).await?)
+    };
 
     let mut prompt = Prompt::new("A prompt to delete", None, None);
-    storage.save_prompt(&mut prompt)?;
+    let prompt_hash = prompt.hash.clone();
+    storage.save_prompt(&mut prompt).await?;
 
     let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
     cmd.arg("--config")
@@ -186,19 +253,38 @@ fn test_cli_delete() -> anyhow::Result<()> {
             &prompt.hash[..12]
         )));
 
-    let prompt_path = env.storage_path.join(format!("{}.json", prompt.hash));
-    assert!(!prompt_path.exists());
+    if storage_type == "json" {
+        let prompt_path = env.storage_path.join(format!("{}.json", prompt.hash));
+        assert!(!prompt_path.exists());
+    } else {
+        let prompts = storage.load_prompts().await?;
+        assert!(prompts.iter().find(|p| p.hash == prompt_hash).is_none());
+    }
+
 
     Ok(())
 }
 
-#[test]
-fn test_cli_edit() -> anyhow::Result<()> {
-    let env = CliTestEnv::new()?;
-    let storage = JsonStorage::new(Some(env.storage_path.to_path_buf()))?;
+#[tokio::test]
+async fn test_cli_delete_json() -> anyhow::Result<()> {
+    test_cli_delete_impl("json").await
+}
+
+#[tokio::test]
+async fn test_cli_delete_libsql() -> anyhow::Result<()> {
+    test_cli_delete_impl("libsql").await
+}
+
+async fn test_cli_edit_impl(storage_type: &str) -> anyhow::Result<()> {
+    let env = CliTestEnv::new(storage_type)?;
+    let storage: Box<dyn Storage + Send + Sync> = if storage_type == "json" {
+        Box::new(JsonStorage::new(Some(env.storage_path.to_path_buf()))?)
+    } else {
+        Box::new(LibSQLStorage::new(Some(env.storage_path.to_path_buf())).await?)
+    };
 
     let mut prompt = Prompt::new("A prompt to edit", None, None);
-    storage.save_prompt(&mut prompt)?;
+    storage.save_prompt(&mut prompt).await?;
     let old_hash = prompt.hash.clone();
 
     let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
@@ -220,19 +306,39 @@ fn test_cli_edit() -> anyhow::Result<()> {
             &new_hash[..12]
         )));
 
-    let old_prompt_path = env.storage_path.join(format!("{}.json", old_hash));
-    assert!(!old_prompt_path.exists());
-    let new_prompt_path = env.storage_path.join(format!("{}.json", new_hash));
-    assert!(new_prompt_path.exists());
+    if storage_type == "json" {
+        let old_prompt_path = env.storage_path.join(format!("{}.json", old_hash));
+        assert!(!old_prompt_path.exists());
+        let new_prompt_path = env.storage_path.join(format!("{}.json", new_hash));
+        assert!(new_prompt_path.exists());
 
-    let content = fs::read_to_string(new_prompt_path)?;
-    let edited_prompt: Prompt = serde_json::from_str(&content)?;
-    assert_eq!(edited_prompt.content, "An edited prompt");
-    assert_eq!(
-        edited_prompt.tags,
-        Some(vec!["newtag1".to_string(), "newtag2".to_string()])
-    );
+        let content = fs::read_to_string(new_prompt_path)?;
+        let edited_prompt: Prompt = serde_json::from_str(&content)?;
+        assert_eq!(edited_prompt.content, "An edited prompt");
+        assert_eq!(
+            edited_prompt.tags,
+            Some(vec!["newtag1".to_string(), "newtag2".to_string()])
+        );
+    } else {
+        let prompts = storage.load_prompts().await?;
+        assert!(prompts.iter().find(|p| p.hash == old_hash).is_none());
+        let edited_prompt = prompts.iter().find(|p| p.hash == new_hash).unwrap();
+        assert_eq!(edited_prompt.content, "An edited prompt");
+        assert_eq!(
+            edited_prompt.tags,
+            Some(vec!["newtag1".to_string(), "newtag2".to_string()])
+        );
+    }
 
     Ok(())
 }
 
+#[tokio::test]
+async fn test_cli_edit_json() -> anyhow::Result<()> {
+    test_cli_edit_impl("json").await
+}
+
+#[tokio::test]
+async fn test_cli_edit_libsql() -> anyhow::Result<()> {
+    test_cli_edit_impl("libsql").await
+}
