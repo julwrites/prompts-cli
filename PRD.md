@@ -36,8 +36,14 @@ The CLI will now manage its own storage, using a default location within the use
 | Story ID | User Story | Acceptance Criteria | Priority |
 |---|---|---|---|
 | **US-001** | As a developer, I want the CLI to automatically manage where my prompts are stored so I don't have to think about it. | The CLI uses a default, user-specific directory (e.g., `~/.config/prompts-cli`). The user can override this with a `--config` flag. | P0 |
+| --- | --- | --- | --- |
+| **Implementation Status** | **Partial** | The storage layer correctly identifies the user-specific config directory. However, the main application does not load `config.toml` from this directory, checking only the current working directory. | |
 | **US-002** | As a developer, I want to add prompts without having to name them, and the tool should handle duplicates. | A prompt's content is hashed to create a unique ID. Adding an existing prompt is a no-op. | P0 |
+| --- | --- | --- | --- |
+| **Implementation Status** | **Partial** | Content is hashed, but de-duplication is not handled gracefully. Overwriting files or causing database errors is not a "no-op". | |
 | **US-003** | As a developer, I want to quickly find a prompt even if I only remember parts of it. | Commands that need to identify a prompt use a fuzzy search on the prompt text. | P0 |
+| --- | --- | --- | --- |
+| **Implementation Status** | **Complete** | The `fuzzy-matcher` library is used to perform fuzzy searches on prompt content. | |
 | **US-004** | As a developer, I want to either provide a prompt directly in a command or have the CLI ask me for it. | Commands like `add`, `show`, `edit`, `delete` support both a one-shot mode (prompt in args) and an interactive mode (reads from stdin). | P1 |
 | **US-005** | As a developer, when my fuzzy search returns multiple results, I want the CLI to show me the options so I can choose the correct one. | The CLI returns a structured JSON list of matching prompts, including their text and hash, for the user to make a specific choice. | P1 |
 | **US-008** | As a developer, I want to use variables in my prompts so I can easily reuse them for different contexts. | The `generate` command supports a `--variable "key=value"` syntax. The prompt text can contain `{{key}}` placeholders. | P1 |
