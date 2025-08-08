@@ -79,7 +79,8 @@ async fn test_cli_default_config_file() -> anyhow::Result<()> {
     prompts_api.add_prompt(&mut prompt).await?;
 
     let mut cmd = Command::cargo_bin("prompts-cli")?;
-    cmd.env("HOME", home_dir.path());
+    cmd.env("HOME", home_dir.path())
+       .env_remove("XDG_CONFIG_HOME");
     cmd.arg("list");
 
     cmd.assert()
