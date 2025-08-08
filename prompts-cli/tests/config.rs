@@ -46,7 +46,14 @@ async fn test_cli_config_file() -> anyhow::Result<()> {
 async fn test_cli_default_config_file() -> anyhow::Result<()> {
     // Create a mock config directory
     let home_dir = tempdir()?;
-    let config_dir = home_dir.path().join(".config").join("prompts-cli");
+    let mut config_dir = home_dir.path().to_path_buf();
+
+    if cfg!(target_os = "macos") {
+        config_dir.push("Library/Application Support/prompts-cli");
+    } else {
+        config_dir.push(".config/prompts-cli");
+    }
+
     fs::create_dir_all(&config_dir)?;
     let config_path = config_dir.join("config.toml");
 
