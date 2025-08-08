@@ -28,3 +28,36 @@ This document outlines the next steps for the `prompts-cli` project, focusing on
 - **Task:** This user story is fully implemented. No new tasks are required.
 
 ---
+
+## **P1: Feature Completeness**
+
+### **US-009: Complete the Tagging Feature**
+
+-   **Task:** Add tag-based filtering to the `list` command.
+    -   **Sub-task:** Add a `--tag` option to the `list` command in `main.rs`.
+    -   **Sub-task:** Update `Prompts::list_prompts` to accept and pass tag filters to `search_prompts`.
+-   **Task:** Ensure all search-based commands can filter by tag.
+    -   **Sub-task:** Modify `Prompts::show_prompt` and other relevant functions to accept and use tag/category filters.
+
+### **Improve `edit` Command Ergonomics**
+
+-   **Task:** Refactor the `edit` command to merge changes instead of requiring full re-specification.
+    -   **Sub-task:** Fetch the existing prompt's metadata (tags, categories).
+    -   **Sub-task:** Allow users to add or remove specific tags without re-entering the entire list.
+
+---
+
+## **P2: Architectural Improvements**
+
+### **Implement Structured Error Handling**
+
+-   **Task:** Add a global `--output json` flag for structured error output.
+    -   **Sub-task:** Create a serializable `Error` struct.
+    -   **Sub-task:** In `main.rs`, catch `Err` results and, if the flag is present, print the serialized JSON error object.
+
+### **Enhance Test Coverage**
+
+-   **Task:** Add integration tests for failure cases identified in `EVAL.md`.
+    -   **Test:** Create a test case for adding a duplicate prompt.
+    -   **Test:** Create a test case for loading configuration from the correct default path.
+    -   **Test:** Add tests for the new features as they are developed.
