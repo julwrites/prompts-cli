@@ -1,6 +1,6 @@
 [package]
 name = "prompts-cli"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
 description = "A CLI for managing prompts for large language models."
 license = "MIT"
