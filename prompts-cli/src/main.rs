@@ -9,7 +9,15 @@ struct AppConfig {
     storage: StorageConfig,
 }
 
-#[derive(Debug, serde::Deserialize)]
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            storage: StorageConfig::default(),
+        }
+    }
+}
+
+#[derive(Debug, serde::Deserialize, Default)]
 struct StorageConfig {
     #[serde(default = "default_storage_type")]
     r#type: String,
@@ -114,14 +122,14 @@ async fn main() -> anyhow::Result<()> {
     let app_config: AppConfig = if let Some(config_path) = &cli.config {
         Config::builder()
             .add_source(File::new(config_path.to_str().unwrap(), FileFormat::Toml))
-            .build()?.try_deserialize().unwrap()
+            .build()?.try_deserialize()?
     } else {
         let config_path = dirs::config_dir()
             .ok_or_else(|| anyhow::anyhow!("Could not find config directory"))?
             .join("prompts-cli/config.toml");
         Config::builder()
             .add_source(File::new(config_path.to_str().unwrap(), FileFormat::Toml).required(false))
-            .build()?.try_deserialize().unwrap()
+            .build()?.try_deserialize().unwrap_or_default()
     };
 
     let storage_path = app_config.storage.path;
