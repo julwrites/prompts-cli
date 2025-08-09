@@ -9,11 +9,28 @@ struct AppConfig {
     storage: StorageConfig,
 }
 
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            storage: StorageConfig::default(),
+        }
+    }
+}
+
 #[derive(Debug, serde::Deserialize)]
 struct StorageConfig {
     #[serde(default = "default_storage_type")]
     r#type: String,
     path: Option<PathBuf>,
+}
+
+impl Default for StorageConfig {
+    fn default() -> Self {
+        Self {
+            r#type: default_storage_type(),
+            path: None,
+        }
+    }
 }
 
 fn default_storage_type() -> String {
@@ -114,11 +131,19 @@ async fn main() -> anyhow::Result<()> {
     let app_config: AppConfig = if let Some(config_path) = &cli.config {
         Config::builder()
             .add_source(File::new(config_path.to_str().unwrap(), FileFormat::Toml))
-            .build()?.try_deserialize().unwrap()
+            .build()?.try_deserialize()?
     } else {
-        Config::builder()
-            .add_source(File::new("config.toml", FileFormat::Toml).required(false))
-            .build()?.try_deserialize().unwrap()
+        let config_builder = match std::env::var("PROMPTS_CLI_CONFIG_PATH") {
+            Ok(path) => Config::builder().add_source(File::new(&path, FileFormat::Toml).required(true)),
+            Err(_) => {
+                let config_path = dirs::config_dir()
+                    .ok_or_else(|| anyhow::anyhow!("Could not find config directory"))?
+                    .join("prompts-cli/config.toml");
+                Config::builder()
+                    .add_source(File::new(config_path.to_str().unwrap(), FileFormat::Toml).required(false))
+            }
+        };
+        config_builder.build()?.try_deserialize().unwrap_or_default()
     };
 
     let storage_path = app_config.storage.path;

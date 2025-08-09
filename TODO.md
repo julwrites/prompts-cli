@@ -6,13 +6,13 @@ This document outlines the next steps for the `prompts-cli` project, focusing on
 
 ## **P0: Core Functionality and Configuration**
 
-### **US-001: Automatic and Correct Storage Location**
+### **US-001: Automatic and Correct Storage Location (Completed)**
 
 - **Task:** Fix configuration file loading.
-    - **Sub-task:** Modify `main.rs` to look for `config.toml` in the user's default configuration directory (e.g., `~/.config/prompts-cli/config.toml`) by default.
-    - **Sub-task:** Ensure that the `--config` flag still allows overriding the default location.
-    - **Test:** Create an integration test that confirms the CLI loads configuration from `~/.config/prompts-cli/config.toml` when no `--config` flag is provided.
-    - **Test:** Verify that the test for the `--config` flag (`test_cli_config_file`) still passes.
+    - **Sub-task:** Modify `main.rs` to look for `config.toml` in the user's default configuration directory (e.g., `~/.config/prompts-cli/config.toml`) by default. (Done)
+    - **Sub-task:** Ensure that the `--config` flag still allows overriding the default location. (Done)
+    - **Test:** Create an integration test that confirms the CLI loads configuration from `~/.config/prompts-cli/config.toml` when no `--config` flag is provided. (Done)
+    - **Test:** Verify that the test for the `--config` flag (`test_cli_config_file`) still passes. (Done)
 
 ### **US-002: Graceful Handling of Duplicate Prompts**
 
