@@ -44,18 +44,8 @@ async fn test_cli_config_file() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn test_cli_default_config_file() -> anyhow::Result<()> {
-    // Create a mock config directory
-    let home_dir = tempdir()?;
-    let mut config_dir = home_dir.path().to_path_buf();
-
-    if cfg!(target_os = "macos") {
-        config_dir.push("Library/Application Support/prompts-cli");
-    } else {
-        config_dir.push(".config/prompts-cli");
-    }
-
-    fs::create_dir_all(&config_dir)?;
-    let config_path = config_dir.join("config.toml");
+    let temp_dir = tempdir()?;
+    let config_path = temp_dir.path().join("config.toml");
 
     // Create a dedicated temporary directory for prompts storage
     let prompts_storage_dir = tempdir()?;
@@ -79,8 +69,7 @@ async fn test_cli_default_config_file() -> anyhow::Result<()> {
     prompts_api.add_prompt(&mut prompt).await?;
 
     let mut cmd = Command::cargo_bin("prompts-cli")?;
-    cmd.env("HOME", home_dir.path())
-       .env_remove("XDG_CONFIG_HOME");
+    cmd.env("PROMPTS_CLI_CONFIG_PATH", &config_path);
     cmd.arg("list");
 
     cmd.assert()
