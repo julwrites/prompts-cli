@@ -47,11 +47,19 @@ async fn test_cli_default_config_file() -> anyhow::Result<()> {
     // Create a mock config directory
     let home_dir = tempdir()?;
     let mut config_dir = home_dir.path().to_path_buf();
+    let mut cmd = Command::cargo_bin("prompts-cli")?;
 
-    if cfg!(target_os = "macos") {
+    if cfg!(target_os = "windows") {
+        // On Windows, config_dir is %APPDATA%. The app joins "prompts-cli".
+        // So we set APPDATA to home_dir.path() and create the dir inside it.
+        config_dir.push("prompts-cli");
+        cmd.env("APPDATA", home_dir.path());
+    } else if cfg!(target_os = "macos") {
         config_dir.push("Library/Application Support/prompts-cli");
+        cmd.env("HOME", home_dir.path());
     } else {
         config_dir.push(".config/prompts-cli");
+        cmd.env("HOME", home_dir.path());
     }
 
     fs::create_dir_all(&config_dir)?;
@@ -78,9 +86,7 @@ async fn test_cli_default_config_file() -> anyhow::Result<()> {
     let mut prompt = Prompt::new("Default config test prompt content", None, None);
     prompts_api.add_prompt(&mut prompt).await?;
 
-    let mut cmd = Command::cargo_bin("prompts-cli")?;
-    cmd.env("HOME", home_dir.path())
-       .env_remove("XDG_CONFIG_HOME");
+    cmd.env_remove("XDG_CONFIG_HOME");
     cmd.arg("list");
 
     cmd.assert()
