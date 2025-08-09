@@ -136,6 +136,7 @@ async fn main() -> anyhow::Result<()> {
         let config_path = dirs::config_dir()
             .ok_or_else(|| anyhow::anyhow!("Could not find config directory"))?
             .join("prompts-cli/config.toml");
+        eprintln!("[DEBUG] App is looking for default config at: {:?}", &config_path);
         Config::builder()
             .add_source(File::new(config_path.to_str().unwrap(), FileFormat::Toml).required(false))
             .build()?.try_deserialize().unwrap_or_default()

@@ -64,6 +64,7 @@ async fn test_cli_default_config_file() -> anyhow::Result<()> {
 
     fs::create_dir_all(&config_dir)?;
     let config_path = config_dir.join("config.toml");
+    println!("[DEBUG] Test is creating default config at: {:?}", &config_path);
 
     // Create a dedicated temporary directory for prompts storage
     let prompts_storage_dir = tempdir()?;
