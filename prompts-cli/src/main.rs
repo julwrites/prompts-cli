@@ -17,11 +17,20 @@ impl Default for AppConfig {
     }
 }
 
-#[derive(Debug, serde::Deserialize, Default)]
+#[derive(Debug, serde::Deserialize)]
 struct StorageConfig {
     #[serde(default = "default_storage_type")]
     r#type: String,
     path: Option<PathBuf>,
+}
+
+impl Default for StorageConfig {
+    fn default() -> Self {
+        Self {
+            r#type: default_storage_type(),
+            path: None,
+        }
+    }
 }
 
 fn default_storage_type() -> String {
