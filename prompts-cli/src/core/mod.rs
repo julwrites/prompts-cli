@@ -11,8 +11,13 @@ impl Prompts {
         Self { storage }
     }
 
-    pub async fn add_prompt(&self, prompt: &mut crate::storage::Prompt) -> Result<()> {
-        self.storage.save_prompt(prompt).await
+    pub async fn add_prompt(&self, prompt: &mut crate::storage::Prompt) -> Result<bool> {
+        let prompts = self.storage.load_prompts().await?;
+        if prompts.iter().any(|p| p.hash == prompt.hash) {
+            return Ok(false);
+        }
+        self.storage.save_prompt(prompt).await?;
+        Ok(true)
     }
 
     pub async fn list_prompts(&self) -> Result<Vec<crate::storage::Prompt>> {

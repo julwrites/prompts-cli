@@ -14,7 +14,8 @@ async fn test_prompts_api() -> anyhow::Result<()> {
 
     // Test adding a prompt
     let mut prompt = Prompt::new("test content", Some(vec!["tag1".to_string()]), None);
-    prompts_api.add_prompt(&mut prompt).await?;
+    let added = prompts_api.add_prompt(&mut prompt).await?;
+    assert!(added);
     assert!(!prompt.hash.is_empty());
 
     // Test listing prompts
@@ -39,6 +40,30 @@ async fn test_prompts_api() -> anyhow::Result<()> {
     prompts_api.delete_prompt(&updated_prompts[0].hash).await?;
     let remaining_prompts = prompts_api.list_prompts().await?;
     assert!(remaining_prompts.is_empty());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_add_duplicate_prompt() -> anyhow::Result<()> {
+    let dir = tempdir()?;
+    let storage_path = dir.path().to_path_buf();
+    let storage = JsonStorage::new(Some(storage_path.clone()))?;
+    let prompts_api = Prompts::new(Box::new(storage));
+
+    let mut prompt = Prompt::new("duplicate content", None, None);
+
+    // First add should succeed
+    let added = prompts_api.add_prompt(&mut prompt).await?;
+    assert!(added);
+
+    // Second add should not add a new prompt and return false
+    let added_again = prompts_api.add_prompt(&mut prompt).await?;
+    assert!(!added_again);
+
+    // Verify that only one prompt exists
+    let listed_prompts = prompts_api.list_prompts().await?;
+    assert_eq!(listed_prompts.len(), 1);
 
     Ok(())
 }
