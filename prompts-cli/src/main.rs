@@ -199,8 +199,11 @@ async fn main() -> anyhow::Result<()> {
         } => {
             let text_content = get_input(text.clone(), "Enter the prompt text:")?;
             let mut prompt = Prompt::new(&text_content, tags.clone(), categories.clone());
-            prompts_api.add_prompt(&mut prompt).await?;
-            println!("Prompt added successfully with hash: {}", &prompt.hash[..12]);
+            if prompts_api.add_prompt(&mut prompt).await? {
+                println!("Prompt added successfully with hash: {}", &prompt.hash[..12]);
+            } else {
+                println!("Prompt already exists.");
+            }
         }
         Commands::Edit {
             query,

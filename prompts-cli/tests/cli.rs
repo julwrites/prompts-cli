@@ -120,6 +120,42 @@ async fn test_cli_add_libsql() -> anyhow::Result<()> {
     test_cli_add_impl("libsql").await
 }
 
+async fn test_cli_add_duplicate_impl(storage_type: &str) -> anyhow::Result<()> {
+    let env = CliTestEnv::new(storage_type)?;
+
+    let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
+    cmd.arg("--config")
+        .arg(&env.config_path)
+        .arg("add")
+        .arg("This is a duplicate prompt.");
+
+    // First add
+    cmd.assert().success();
+
+    // Second add
+    let mut cmd2 = Command::cargo_bin(r#"prompts-cli"#)?;
+    cmd2.arg("--config")
+        .arg(&env.config_path)
+        .arg("add")
+        .arg("This is a duplicate prompt.");
+
+    cmd2.assert()
+        .success()
+        .stdout(predicate::str::contains("Prompt already exists."));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_cli_add_duplicate_json() -> anyhow::Result<()> {
+    test_cli_add_duplicate_impl("json").await
+}
+
+#[tokio::test]
+async fn test_cli_add_duplicate_libsql() -> anyhow::Result<()> {
+    test_cli_add_duplicate_impl("libsql").await
+}
+
 async fn test_cli_list_impl(storage_type: &str) -> anyhow::Result<()> {
     let env = CliTestEnv::new(storage_type)?;
     let storage: Box<dyn Storage + Send + Sync> = if storage_type == "json" {
