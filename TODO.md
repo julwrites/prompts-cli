@@ -58,6 +58,4 @@ This document outlines the next steps for the `prompts-cli` project, focusing on
 ### **Enhance Test Coverage**
 
 -   **Task:** Add integration tests for failure cases identified in `EVAL.md`.
-    -   **Test:** Create a test case for adding a duplicate prompt.
-    -   **Test:** Create a test case for loading configuration from the correct default path.
     -   **Test:** Add tests for the new features as they are developed.

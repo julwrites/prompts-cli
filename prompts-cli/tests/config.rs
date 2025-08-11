@@ -43,6 +43,52 @@ async fn test_cli_config_file() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
+async fn test_cli_default_config_location() -> anyhow::Result<()> {
+    // 1. Create a fake home directory.
+    let fake_home = tempdir()?;
+
+    // 2. Create the nested config directory structure.
+    let config_dir = fake_home.path().join(".config").join("prompts-cli");
+    fs::create_dir_all(&config_dir)?;
+    let config_path = config_dir.join("config.toml");
+
+    // 3. Create a dedicated temporary directory for prompts storage.
+    let prompts_storage_dir = tempdir()?;
+    let prompts_storage_path = prompts_storage_dir.path();
+
+    // 4. Write a config file in the fake home directory.
+    let mut config = toml::map::Map::new();
+    let mut storage_config = toml::map::Map::new();
+    storage_config.insert(
+        "path".to_string(),
+        Value::String(prompts_storage_path.to_string_lossy().into_owned()),
+    );
+    config.insert("storage".to_string(), Value::Table(storage_config));
+    let config_content = toml::to_string(&config)?;
+    fs::write(&config_path, config_content)?;
+
+    // 5. Add a prompt directly to the storage path specified in the config.
+    let storage = JsonStorage::new(Some(prompts_storage_path.to_path_buf()))?;
+    let prompts_api = Prompts::new(Box::new(storage));
+    let mut prompt = Prompt::new("Default location config test", None, None);
+    prompts_api.add_prompt(&mut prompt).await?;
+
+    // 6. Run the CLI, setting HOME to our fake home directory.
+    let mut cmd = Command::cargo_bin("prompts-cli")?;
+    cmd.env("HOME", fake_home.path());
+    // Unset the env var used by the other test to ensure we're not using it.
+    cmd.env_remove("PROMPTS_CLI_CONFIG_PATH");
+    cmd.arg("list");
+
+    // 7. Assert that the CLI finds the prompt, proving it used our config.
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains(&format!("{} - Default location config test", &prompt.hash[..12])));
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_cli_default_config_file() -> anyhow::Result<()> {
     let temp_dir = tempdir()?;
     let config_path = temp_dir.path().join("config.toml");
