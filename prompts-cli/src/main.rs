@@ -102,6 +102,18 @@ enum Commands {
         /// The new categories for the prompt (comma-separated)
         #[arg(short = 'e', long, value_delimiter = ',')]
         categories: Option<Vec<String>>,
+        /// Tags to add to the prompt (comma-separated)
+        #[arg(long, value_delimiter = ',')]
+        add_tags: Option<Vec<String>>,
+        /// Tags to remove from the prompt (comma-separated)
+        #[arg(long, value_delimiter = ',')]
+        remove_tags: Option<Vec<String>>,
+        /// Categories to add to the prompt (comma-separated)
+        #[arg(long, value_delimiter = ',')]
+        add_categories: Option<Vec<String>>,
+        /// Categories to remove from the prompt (comma-separated)
+        #[arg(long, value_delimiter = ',')]
+        remove_categories: Option<Vec<String>>,
     },
     /// Deletes a prompt
     Delete {
@@ -227,15 +239,46 @@ async fn main() -> anyhow::Result<()> {
             text,
             tags,
             categories,
+            add_tags,
+            remove_tags,
+            add_categories,
+            remove_categories,
         } => {
             let query_str = get_input(query.clone(), "Enter a query to find the prompt to edit:")?;
             let search_results = prompts_api.show_prompt(&query_str, filter_tags.clone()).await?;
 
             if search_results.len() == 1 {
-                let old_prompt_hash = search_results[0].hash.clone();
-                let text_content = text.clone().unwrap_or_else(|| search_results[0].content.clone());
-                let tags_content = tags.clone().unwrap_or_else(|| search_results[0].tags.clone().unwrap_or_default());
-                let categories_content = categories.clone().unwrap_or_else(|| search_results[0].categories.clone().unwrap_or_default());
+                let old_prompt = &search_results[0];
+                let old_prompt_hash = old_prompt.hash.clone();
+                let text_content = text.clone().unwrap_or_else(|| old_prompt.content.clone());
+
+                let mut tags_content = old_prompt.tags.clone().unwrap_or_default();
+                if let Some(new_tags) = tags {
+                    tags_content = new_tags.clone();
+                } else {
+                    if let Some(tags_to_add) = add_tags {
+                        tags_content.extend(tags_to_add.clone());
+                        tags_content.sort();
+                        tags_content.dedup();
+                    }
+                    if let Some(tags_to_remove) = remove_tags {
+                        tags_content.retain(|t| !tags_to_remove.contains(t));
+                    }
+                }
+
+                let mut categories_content = old_prompt.categories.clone().unwrap_or_default();
+                if let Some(new_categories) = categories {
+                    categories_content = new_categories.clone();
+                } else {
+                    if let Some(categories_to_add) = add_categories {
+                        categories_content.extend(categories_to_add.clone());
+                        categories_content.sort();
+                        categories_content.dedup();
+                    }
+                    if let Some(categories_to_remove) = remove_categories {
+                        categories_content.retain(|c| !categories_to_remove.contains(c));
+                    }
+                }
 
                 let mut new_prompt = Prompt::new(&text_content, Some(tags_content), Some(categories_content));
                 prompts_api.edit_prompt(&old_prompt_hash, &mut new_prompt).await?;

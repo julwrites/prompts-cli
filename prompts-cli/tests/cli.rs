@@ -418,6 +418,90 @@ async fn test_cli_edit_libsql() -> anyhow::Result<()> {
     test_cli_edit_impl("libsql").await
 }
 
+async fn test_cli_edit_merge_impl(storage_type: &str) -> anyhow::Result<()> {
+    let env = CliTestEnv::new(storage_type)?;
+    let storage: Box<dyn Storage + Send + Sync> = if storage_type == "json" {
+        Box::new(JsonStorage::new(Some(env.storage_path.to_path_buf()))?)
+    } else {
+        Box::new(LibSQLStorage::new(Some(env.storage_path.to_path_buf())).await?)
+    };
+
+    let mut prompt = Prompt::new(
+        "A prompt to edit with merge",
+        Some(vec!["tag1".to_string(), "tag2".to_string()]),
+        Some(vec!["cat1".to_string(), "cat2".to_string()]),
+    );
+    storage.save_prompt(&mut prompt).await?;
+    let _old_hash = prompt.hash.clone();
+
+    // Add a tag
+    let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
+    cmd.arg("--config")
+        .arg(&env.config_path)
+        .arg("edit")
+        .arg("prompt to edit with merge")
+        .arg("--add-tags")
+        .arg("tag3");
+    cmd.assert().success();
+
+    // Remove a tag
+    let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
+    cmd.arg("--config")
+        .arg(&env.config_path)
+        .arg("edit")
+        .arg("prompt to edit with merge")
+        .arg("--remove-tags")
+        .arg("tag1");
+
+    cmd.assert().success();
+
+    // Add a category
+    let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
+    cmd.arg("--config")
+        .arg(&env.config_path)
+        .arg("edit")
+        .arg("prompt to edit with merge")
+        .arg("--add-categories")
+        .arg("cat3");
+
+    cmd.assert().success();
+
+    // Remove a category
+    let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
+    cmd.arg("--config")
+        .arg(&env.config_path)
+        .arg("edit")
+        .arg("prompt to edit with merge")
+        .arg("--remove-categories")
+        .arg("cat1");
+
+    cmd.assert().success();
+
+    let prompts = storage.load_prompts().await?;
+    let edited_prompt = prompts.iter().find(|p| p.content == "A prompt to edit with merge").unwrap();
+
+    assert_eq!(
+        edited_prompt.tags,
+        Some(vec!["tag2".to_string(), "tag3".to_string()])
+    );
+    assert_eq!(
+        edited_prompt.categories,
+        Some(vec!["cat2".to_string(), "cat3".to_string()])
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_cli_edit_merge_json() -> anyhow::Result<()> {
+    test_cli_edit_merge_impl("json").await
+}
+
+#[tokio::test]
+async fn test_cli_edit_merge_libsql() -> anyhow::Result<()> {
+    test_cli_edit_merge_impl("libsql").await
+}
+
 async fn test_cli_show_with_tag_filter_impl(storage_type: &str) -> anyhow::Result<()> {
     let env = CliTestEnv::new(storage_type)?;
     let storage: Box<dyn Storage + Send + Sync> = if storage_type == "json" {
