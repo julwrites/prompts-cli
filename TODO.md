@@ -37,7 +37,7 @@ This document outlines the next steps for the `prompts-cli` project, focusing on
     -   **Sub-task:** Add a `--tag` option to the `list` command in `main.rs`. (Done)
     -   **Sub-task:** Update `Prompts::list_prompts` to accept and pass tag filters to `search_prompts`. (Done)
 -   **Task:** Ensure all search-based commands can filter by tag.
-    -   **Sub-task:** Modify `Prompts::show_prompt` and other relevant functions to accept and use tag/category filters.
+    -   **Sub-task:** Modify `Prompts::show_prompt` and other relevant functions to accept and use tag/category filters. (Done)
 
 ### **Improve `edit` Command Ergonomics**
 

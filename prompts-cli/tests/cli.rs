@@ -417,3 +417,43 @@ async fn test_cli_edit_json() -> anyhow::Result<()> {
 async fn test_cli_edit_libsql() -> anyhow::Result<()> {
     test_cli_edit_impl("libsql").await
 }
+
+async fn test_cli_show_with_tag_filter_impl(storage_type: &str) -> anyhow::Result<()> {
+    let env = CliTestEnv::new(storage_type)?;
+    let storage: Box<dyn Storage + Send + Sync> = if storage_type == "json" {
+        Box::new(JsonStorage::new(Some(env.storage_path.to_path_buf()))?)
+    } else {
+        Box::new(LibSQLStorage::new(Some(env.storage_path.to_path_buf())).await?)
+    };
+
+    let mut prompt1 = Prompt::new("A prompt with tag", Some(vec!["test-tag".to_string()]), None);
+    storage.save_prompt(&mut prompt1).await?;
+
+    let mut prompt2 = Prompt::new("A prompt without tag", None, None);
+    storage.save_prompt(&mut prompt2).await?;
+
+    let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
+    cmd.arg("--config")
+        .arg(&env.config_path)
+        .arg("show")
+        .arg("prompt")
+        .arg("--tags")
+        .arg("test-tag");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("A prompt with tag"))
+        .stdout(predicate::str::contains("A prompt without tag").not());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_cli_show_with_tag_filter_json() -> anyhow::Result<()> {
+    test_cli_show_with_tag_filter_impl("json").await
+}
+
+#[tokio::test]
+async fn test_cli_show_with_tag_filter_libsql() -> anyhow::Result<()> {
+    test_cli_show_with_tag_filter_impl("libsql").await
+}
