@@ -86,8 +86,9 @@ async fn test_cli_default_config_location() -> anyhow::Result<()> {
     // 6. Run the CLI, setting HOME to our fake home directory.
     let mut cmd = Command::cargo_bin("prompts-cli")?;
     cmd.env("HOME", fake_home.path());
-    // Unset the env var used by the other test to ensure we're not using it.
+    // Unset other config-related env vars to ensure the test is hermetic.
     cmd.env_remove("PROMPTS_CLI_CONFIG_PATH");
+    cmd.env_remove("XDG_CONFIG_HOME");
     cmd.arg("list");
 
     // 7. Assert that the CLI finds the prompt, proving it used our config.
