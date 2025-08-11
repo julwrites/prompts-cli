@@ -24,7 +24,7 @@ async fn test_prompts_api() -> anyhow::Result<()> {
     assert_eq!(listed_prompts[0].content, "test content");
 
     // Test showing a prompt
-    let shown_prompts = prompts_api.show_prompt("test").await?;
+    let shown_prompts = prompts_api.show_prompt("test", None).await?;
     assert_eq!(shown_prompts.len(), 1);
     assert_eq!(shown_prompts[0].content, "test content");
 

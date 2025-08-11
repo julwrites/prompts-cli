@@ -59,12 +59,18 @@ enum Commands {
     Show {
         /// The fuzzy query to search for a prompt
         query: Option<String>,
+        /// Tags for the prompt (comma-separated)
+        #[arg(short, long, value_delimiter = ',')]
+        tags: Option<Vec<String>>,
     },
 
     /// Generates text based on a prompt
     Generate {
         /// The fuzzy query to search for a prompt
         query: Option<String>,
+        /// Tags for the prompt (comma-separated)
+        #[arg(short, long, value_delimiter = ',')]
+        tags: Option<Vec<String>>,
         /// Variables to use for templating (key=value pairs)
         #[arg(short, long, value_parser = parse_key_val, action = clap::ArgAction::Append)]
         variables: Vec<(String, String)>,
@@ -84,6 +90,9 @@ enum Commands {
     Edit {
         /// The fuzzy query to search for a prompt
         query: Option<String>,
+        /// Tags for filtering (comma-separated)
+        #[arg(long, value_delimiter = ',')]
+        filter_tags: Option<Vec<String>>,
         /// The new text content of the prompt
         #[arg(short, long)]
         text: Option<String>,
@@ -98,6 +107,9 @@ enum Commands {
     Delete {
         /// The fuzzy query to search for a prompt
         query: Option<String>,
+        /// Tags for the prompt (comma-separated)
+        #[arg(short, long, value_delimiter = ',')]
+        tags: Option<Vec<String>>,
     },
     /// Imports prompts from a directory
     Import {
@@ -167,9 +179,9 @@ async fn main() -> anyhow::Result<()> {
                 println!("{} - {}", &prompt.hash[..12], prompt.content);
             }
         }
-        Commands::Show { query } => {
+        Commands::Show { query, tags } => {
             let query_str = get_input(query.clone(), "Enter a query to search for a prompt:")?;
-            let search_results = prompts_api.show_prompt(&query_str).await?;
+            let search_results = prompts_api.show_prompt(&query_str, tags.clone()).await?;
 
             if search_results.len() == 1 {
                 println!("{}", search_results[0].content);
@@ -179,9 +191,9 @@ async fn main() -> anyhow::Result<()> {
             }
         }
 
-        Commands::Generate { query, variables } => {
+        Commands::Generate { query, tags, variables } => {
             let query_str = get_input(query.clone(), "Enter a query to search for a prompt:")?;
-            let search_results = prompts_api.show_prompt(&query_str).await?;
+            let search_results = prompts_api.show_prompt(&query_str, tags.clone()).await?;
 
             if search_results.len() == 1 {
                 let prompt = &search_results[0];
@@ -211,12 +223,13 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::Edit {
             query,
+            filter_tags,
             text,
             tags,
             categories,
         } => {
             let query_str = get_input(query.clone(), "Enter a query to find the prompt to edit:")?;
-            let search_results = prompts_api.show_prompt(&query_str).await?;
+            let search_results = prompts_api.show_prompt(&query_str, filter_tags.clone()).await?;
 
             if search_results.len() == 1 {
                 let old_prompt_hash = search_results[0].hash.clone();
@@ -232,9 +245,9 @@ async fn main() -> anyhow::Result<()> {
                 println!("{}", result_json);
             }
         }
-        Commands::Delete { query } => {
+        Commands::Delete { query, tags } => {
             let query_str = get_input(query.clone(), "Enter a query to find the prompt to delete:")?;
-            let search_results = prompts_api.show_prompt(&query_str).await?;
+            let search_results = prompts_api.show_prompt(&query_str, tags.clone()).await?;
 
             if search_results.len() == 1 {
                 let prompt_hash = search_results[0].hash.clone();
