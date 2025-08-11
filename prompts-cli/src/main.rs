@@ -50,7 +50,11 @@ struct Cli {
 #[derive(Parser, Debug)]
 enum Commands {
     /// Lists all the prompts
-    List,
+    List {
+        /// Tags for the prompt (comma-separated)
+        #[arg(short, long, value_delimiter = ',')]
+        tags: Option<Vec<String>>,
+    },
     /// Shows a specific prompt
     Show {
         /// The fuzzy query to search for a prompt
@@ -157,8 +161,8 @@ async fn main() -> anyhow::Result<()> {
     let prompts_api = Prompts::new(storage);
 
     match &cli.command {
-        Commands::List => {
-            let prompts = prompts_api.list_prompts().await?;
+        Commands::List { tags } => {
+            let prompts = prompts_api.list_prompts(tags.clone()).await?;
             for prompt in prompts {
                 println!("{} - {}", &prompt.hash[..12], prompt.content);
             }
@@ -257,7 +261,7 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::Export { path } => {
             std::fs::create_dir_all(path)?;
-            let prompts = prompts_api.list_prompts().await?;
+            let prompts = prompts_api.list_prompts(None).await?;
             let mut exported_count = 0;
             for prompt in prompts {
                 let file_path = path.join(format!("{}.json", prompt.hash));

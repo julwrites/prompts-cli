@@ -19,7 +19,7 @@ async fn test_prompts_api() -> anyhow::Result<()> {
     assert!(!prompt.hash.is_empty());
 
     // Test listing prompts
-    let listed_prompts = prompts_api.list_prompts().await?;
+    let listed_prompts = prompts_api.list_prompts(None).await?;
     assert_eq!(listed_prompts.len(), 1);
     assert_eq!(listed_prompts[0].content, "test content");
 
@@ -31,14 +31,14 @@ async fn test_prompts_api() -> anyhow::Result<()> {
     // Test editing a prompt
     let mut edited_prompt = Prompt::new("edited content", Some(vec!["tag2".to_string()]), None);
     prompts_api.edit_prompt(&prompt.hash, &mut edited_prompt).await?;
-    let updated_prompts = prompts_api.list_prompts().await?;
+    let updated_prompts = prompts_api.list_prompts(None).await?;
     assert_eq!(updated_prompts.len(), 1);
     assert_eq!(updated_prompts[0].content, "edited content");
     assert_eq!(updated_prompts[0].tags, Some(vec!["tag2".to_string()]));
 
     // Test deleting a prompt
     prompts_api.delete_prompt(&updated_prompts[0].hash).await?;
-    let remaining_prompts = prompts_api.list_prompts().await?;
+    let remaining_prompts = prompts_api.list_prompts(None).await?;
     assert!(remaining_prompts.is_empty());
 
     Ok(())
@@ -62,7 +62,7 @@ async fn test_add_duplicate_prompt() -> anyhow::Result<()> {
     assert!(!added_again);
 
     // Verify that only one prompt exists
-    let listed_prompts = prompts_api.list_prompts().await?;
+    let listed_prompts = prompts_api.list_prompts(None).await?;
     assert_eq!(listed_prompts.len(), 1);
 
     Ok(())

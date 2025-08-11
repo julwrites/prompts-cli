@@ -20,8 +20,14 @@ impl Prompts {
         Ok(true)
     }
 
-    pub async fn list_prompts(&self) -> Result<Vec<crate::storage::Prompt>> {
-        self.storage.load_prompts().await
+    pub async fn list_prompts(&self, tags: Option<Vec<String>>) -> Result<Vec<crate::storage::Prompt>> {
+        let prompts = self.storage.load_prompts().await?;
+        if let Some(tags) = tags {
+            let search_results = search_prompts(&prompts, "", &tags, &[]);
+            Ok(search_results)
+        } else {
+            Ok(prompts)
+        }
     }
 
     pub async fn show_prompt(&self, query: &str) -> Result<Vec<crate::storage::Prompt>> {
