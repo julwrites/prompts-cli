@@ -1,5 +1,5 @@
 use clap::Parser;
-use prompts_cli::{Prompt, Prompts, JsonStorage, LibSQLStorage, Storage};
+use prompts_cli::{AppError, Prompt, Prompts, JsonStorage, LibSQLStorage, Storage};
 use std::io::{self, Read};
 use std::path::PathBuf;
 use config::{Config, File, FileFormat};
@@ -43,6 +43,9 @@ struct Cli {
     /// The path to the prompts storage directory
     #[arg(short, long)]
     config: Option<PathBuf>,
+    /// The output format
+    #[arg(long)]
+    output: Option<String>,
     #[command(subcommand)]
     command: Commands,
 }
@@ -146,10 +149,7 @@ fn parse_key_val(s: &str) -> Result<(String, String), String> {
     Ok((s[..pos].to_string(), s[pos + 1..].to_string()))
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    let cli = Cli::parse();
-
+async fn run_cli(cli: Cli) -> Result<(), AppError> {
     let app_config: AppConfig = if let Some(config_path) = &cli.config {
         Config::builder()
             .add_source(File::new(config_path.to_str().unwrap(), FileFormat::Toml))
@@ -173,7 +173,7 @@ async fn main() -> anyhow::Result<()> {
     let storage: Box<dyn Storage + Send + Sync> = match app_config.storage.r#type.as_str() {
         "json" => Box::new(JsonStorage::new(storage_path)?),
         "libsql" => Box::new(LibSQLStorage::new(storage_path).await?),
-        _ => return Err(anyhow::anyhow!("Invalid storage type")),
+        _ => return Err(AppError::Storage("Invalid storage type".to_string())),
     };
 
     let prompts_api = Prompts::new(storage);
@@ -207,7 +207,8 @@ async fn main() -> anyhow::Result<()> {
                 for (key, value) in variables {
                     context.insert(key, &value);
                 }
-                let rendered_prompt = tera::Tera::one_off(&prompt.content, &context, false)?;
+                let rendered_prompt = tera::Tera::one_off(&prompt.content, &context, false)
+                    .map_err(|e| AppError::Anyhow(e.to_string()))?;
                 println!("{}", rendered_prompt);
             } else {
                 let result_json = serde_json::to_string_pretty(&search_results)?;
@@ -300,4 +301,25 @@ async fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+
+#[tokio::main]
+async fn main() {
+    let cli = Cli::parse();
+    let output_json = cli.output.as_deref() == Some("json");
+
+    if let Err(e) = run_cli(cli).await {
+        if output_json {
+            if let Ok(json) = serde_json::to_string(&e) {
+                println!("{}", json);
+            } else {
+                // Fallback for serialization errors
+                println!("{{\"error\":\"Failed to serialize error message\"}}");
+            }
+        } else {
+            eprintln!("Error: {}", e);
+        }
+        std::process::exit(1);
+    }
 }

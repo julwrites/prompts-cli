@@ -49,11 +49,11 @@ This document outlines the next steps for the `prompts-cli` project, focusing on
 
 ## **P2: Architectural Improvements**
 
-### **Implement Structured Error Handling**
+### **Implement Structured Error Handling (Completed)**
 
--   **Task:** Add a global `--output json` flag for structured error output.
-    -   **Sub-task:** Create a serializable `Error` struct.
-    -   **Sub-task:** In `main.rs`, catch `Err` results and, if the flag is present, print the serialized JSON error object.
+-   **Task:** Add a global `--output json` flag for structured error output. (Done)
+    -   **Sub-task:** Create a serializable `Error` struct. (Done)
+    -   **Sub-task:** In `main.rs`, catch `Err` results and, if the flag is present, print the serialized JSON error object. (Done)
 
 ### **Enhance Test Coverage**
 
