@@ -369,27 +369,21 @@ async fn test_cli_edit_impl(storage_type: &str) -> anyhow::Result<()> {
         .arg("prompt to edit")
         .arg("--text")
         .arg("An edited prompt")
-        .arg("--tags")
+        .arg("--add-tags")
         .arg("newtag1,newtag2");
 
-    let new_hash = calculate_hash("An edited prompt");
     cmd.assert()
         .success()
         .stdout(predicate::str::contains(&format!(
-            "Prompt {} updated to {}",
-            &old_hash[..12],
-            &new_hash[..12]
+            "Prompt {} updated.",
+            &old_hash[..12]
         )));
 
     if storage_type == "json" {
         let old_prompt_path = env.storage_path.join(format!("{}.json", old_hash));
         assert!(!old_prompt_path.exists());
-        let new_prompt_path = env.storage_path.join(format!("{}.json", new_hash));
-        assert!(new_prompt_path.exists());
-
-        let content = fs::read_to_string(new_prompt_path)?;
-        let edited_prompt: Prompt = serde_json::from_str(&content)?;
-        assert_eq!(edited_prompt.content, "An edited prompt");
+        let prompts = storage.load_prompts().await?;
+        let edited_prompt = prompts.iter().find(|p| p.content == "An edited prompt").unwrap();
         assert_eq!(
             edited_prompt.tags,
             Some(vec!["newtag1".to_string(), "newtag2".to_string()])
@@ -397,8 +391,7 @@ async fn test_cli_edit_impl(storage_type: &str) -> anyhow::Result<()> {
     } else {
         let prompts = storage.load_prompts().await?;
         assert!(prompts.iter().find(|p| p.hash == old_hash).is_none());
-        let edited_prompt = prompts.iter().find(|p| p.hash == new_hash).unwrap();
-        assert_eq!(edited_prompt.content, "An edited prompt");
+        let edited_prompt = prompts.iter().find(|p| p.content == "An edited prompt").unwrap();
         assert_eq!(
             edited_prompt.tags,
             Some(vec!["newtag1".to_string(), "newtag2".to_string()])
@@ -500,6 +493,59 @@ async fn test_cli_edit_merge_json() -> anyhow::Result<()> {
 #[tokio::test]
 async fn test_cli_edit_merge_libsql() -> anyhow::Result<()> {
     test_cli_edit_merge_impl("libsql").await
+}
+
+async fn test_cli_edit_add_tags_impl(storage_type: &str) -> anyhow::Result<()> {
+    let env = CliTestEnv::new(storage_type)?;
+    let storage: Box<dyn Storage + Send + Sync> = if storage_type == "json" {
+        Box::new(JsonStorage::new(Some(env.storage_path.to_path_buf()))?)
+    } else {
+        Box::new(LibSQLStorage::new(Some(env.storage_path.to_path_buf())).await?)
+    };
+
+    let mut prompt = Prompt::new(
+        "A prompt to edit with merge",
+        Some(vec!["tag1".to_string()]),
+        None,
+    );
+    storage.save_prompt(&mut prompt).await?;
+    let old_hash = prompt.hash.clone();
+
+    // Add a tag
+    let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
+    cmd.arg("--config")
+        .arg(&env.config_path)
+        .arg("edit")
+        .arg("prompt to edit with merge")
+        .arg("--add-tags")
+        .arg("tag2");
+    cmd.assert().success();
+
+    let prompts = storage.load_prompts().await?;
+    let edited_prompt = prompts.iter().find(|p| p.content == "A prompt to edit with merge").unwrap();
+
+    let mut expected_tags = vec!["tag1".to_string(), "tag2".to_string()];
+    expected_tags.sort();
+    let mut actual_tags = edited_prompt.tags.clone().unwrap();
+    actual_tags.sort();
+
+    assert_eq!(
+        actual_tags,
+        expected_tags,
+        "Tags should be merged correctly"
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_cli_edit_add_tags_json() -> anyhow::Result<()> {
+    test_cli_edit_add_tags_impl("json").await
+}
+
+#[tokio::test]
+async fn test_cli_edit_add_tags_libsql() -> anyhow::Result<()> {
+    test_cli_edit_add_tags_impl("libsql").await
 }
 
 async fn test_cli_show_with_tag_filter_impl(storage_type: &str) -> anyhow::Result<()> {
