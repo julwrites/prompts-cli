@@ -1,6 +1,7 @@
 use anyhow::Result;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
+use sha2::{Digest, Sha256};
 
 pub struct Prompts {
     storage: Box<dyn crate::storage::Storage + Send + Sync>,
@@ -36,9 +37,52 @@ impl Prompts {
         Ok(search_results)
     }
 
-    pub async fn edit_prompt(&self, hash: &str, new_prompt: &mut crate::storage::Prompt) -> Result<()> {
-        self.storage.delete_prompt(hash).await?;
-        self.storage.save_prompt(new_prompt).await
+    pub async fn edit_prompt(
+        &self,
+        hash: &str,
+        new_text: Option<String>,
+        add_tags: Option<Vec<String>>,
+        remove_tags: Option<Vec<String>>,
+        add_categories: Option<Vec<String>>,
+        remove_categories: Option<Vec<String>>,
+    ) -> Result<()> {
+        let mut prompts = self.storage.load_prompts().await?;
+        let prompt_to_edit = prompts.iter_mut().find(|p| p.hash == hash);
+
+        if let Some(prompt) = prompt_to_edit {
+            if let Some(text) = new_text {
+                prompt.content = text;
+                let hash = Sha256::digest(prompt.content.as_bytes());
+                prompt.hash = format!("{:x}", hash);
+            }
+
+            let mut tags = prompt.tags.clone().unwrap_or_default();
+            if let Some(tags_to_add) = add_tags {
+                tags.extend(tags_to_add);
+                tags.sort();
+                tags.dedup();
+            }
+            if let Some(tags_to_remove) = remove_tags {
+                tags.retain(|t| !tags_to_remove.contains(t));
+            }
+            prompt.tags = Some(tags);
+
+            let mut categories = prompt.categories.clone().unwrap_or_default();
+            if let Some(categories_to_add) = add_categories {
+                categories.extend(categories_to_add);
+                categories.sort();
+                categories.dedup();
+            }
+            if let Some(categories_to_remove) = remove_categories {
+                categories.retain(|c| !categories_to_remove.contains(c));
+            }
+            prompt.categories = Some(categories);
+
+            self.storage.delete_prompt(hash).await?;
+            self.storage.save_prompt(prompt).await?;
+        }
+
+        Ok(())
     }
 
     pub async fn delete_prompt(&self, hash: &str) -> Result<()> {

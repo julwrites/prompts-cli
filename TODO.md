@@ -39,11 +39,11 @@ This document outlines the next steps for the `prompts-cli` project, focusing on
 -   **Task:** Ensure all search-based commands can filter by tag.
     -   **Sub-task:** Modify `Prompts::show_prompt` and other relevant functions to accept and use tag/category filters. (Done)
 
-### **Improve `edit` Command Ergonomics**
+### **Improve `edit` Command Ergonomics (Completed)**
 
--   **Task:** Refactor the `edit` command to merge changes instead of requiring full re-specification.
-    -   **Sub-task:** Fetch the existing prompt's metadata (tags, categories).
-    -   **Sub-task:** Allow users to add or remove specific tags without re-entering the entire list.
+-   **Task:** Refactor the `edit` command to merge changes instead of requiring full re-specification. (Done)
+    -   **Sub-task:** Fetch the existing prompt's metadata (tags, categories). (Done)
+    -   **Sub-task:** Allow users to add or remove specific tags without re-entering the entire list. (Done)
 
 ---
 

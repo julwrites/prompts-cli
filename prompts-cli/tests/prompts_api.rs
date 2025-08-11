@@ -29,12 +29,23 @@ async fn test_prompts_api() -> anyhow::Result<()> {
     assert_eq!(shown_prompts[0].content, "test content");
 
     // Test editing a prompt
-    let mut edited_prompt = Prompt::new("edited content", Some(vec!["tag2".to_string()]), None);
-    prompts_api.edit_prompt(&prompt.hash, &mut edited_prompt).await?;
+    prompts_api.edit_prompt(
+        &prompt.hash,
+        Some("edited content".to_string()),
+        Some(vec!["tag2".to_string()]),
+        None,
+        None,
+        None,
+    ).await?;
     let updated_prompts = prompts_api.list_prompts(None).await?;
     assert_eq!(updated_prompts.len(), 1);
     assert_eq!(updated_prompts[0].content, "edited content");
-    assert_eq!(updated_prompts[0].tags, Some(vec!["tag2".to_string()]));
+    // The new implementation of edit_prompt merges tags, so the old tag is still there.
+    let mut expected_tags = vec!["tag1".to_string(), "tag2".to_string()];
+    expected_tags.sort();
+    let mut actual_tags = updated_prompts[0].tags.clone().unwrap();
+    actual_tags.sort();
+    assert_eq!(actual_tags, expected_tags);
 
     // Test deleting a prompt
     prompts_api.delete_prompt(&updated_prompts[0].hash).await?;
