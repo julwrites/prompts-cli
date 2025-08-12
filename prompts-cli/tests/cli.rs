@@ -548,6 +548,162 @@ async fn test_cli_edit_add_tags_libsql() -> anyhow::Result<()> {
     test_cli_edit_add_tags_impl("libsql").await
 }
 
+async fn test_cli_edit_remove_tags_impl(storage_type: &str) -> anyhow::Result<()> {
+    let env = CliTestEnv::new(storage_type)?;
+    let storage: Box<dyn Storage + Send + Sync> = if storage_type == "json" {
+        Box::new(JsonStorage::new(Some(env.storage_path.to_path_buf()))?)
+    } else {
+        Box::new(LibSQLStorage::new(Some(env.storage_path.to_path_buf())).await?)
+    };
+
+    let mut prompt = Prompt::new(
+        "A prompt to remove tags from",
+        Some(vec!["tag1".to_string(), "tag2".to_string()]),
+        None,
+    );
+    storage.save_prompt(&mut prompt).await?;
+
+    // Remove a tag
+    let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
+    cmd.arg("--config")
+        .arg(&env.config_path)
+        .arg("edit")
+        .arg("A prompt to remove tags from")
+        .arg("--remove-tags")
+        .arg("tag1");
+    cmd.assert().success();
+
+    let prompts = storage.load_prompts().await?;
+    let edited_prompt = prompts.iter().find(|p| p.content == "A prompt to remove tags from").unwrap();
+
+    let mut expected_tags = vec!["tag2".to_string()];
+    expected_tags.sort();
+    let mut actual_tags = edited_prompt.tags.clone().unwrap();
+    actual_tags.sort();
+
+    assert_eq!(
+        actual_tags,
+        expected_tags,
+        "Tags should be removed correctly"
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_cli_edit_remove_tags_json() -> anyhow::Result<()> {
+    test_cli_edit_remove_tags_impl("json").await
+}
+
+#[tokio::test]
+async fn test_cli_edit_remove_tags_libsql() -> anyhow::Result<()> {
+    test_cli_edit_remove_tags_impl("libsql").await
+}
+
+async fn test_cli_edit_add_categories_impl(storage_type: &str) -> anyhow::Result<()> {
+    let env = CliTestEnv::new(storage_type)?;
+    let storage: Box<dyn Storage + Send + Sync> = if storage_type == "json" {
+        Box::new(JsonStorage::new(Some(env.storage_path.to_path_buf()))?)
+    } else {
+        Box::new(LibSQLStorage::new(Some(env.storage_path.to_path_buf())).await?)
+    };
+
+    let mut prompt = Prompt::new(
+        "A prompt to add categories to",
+        None,
+        Some(vec!["cat1".to_string()]),
+    );
+    storage.save_prompt(&mut prompt).await?;
+
+    // Add a category
+    let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
+    cmd.arg("--config")
+        .arg(&env.config_path)
+        .arg("edit")
+        .arg("A prompt to add categories to")
+        .arg("--add-categories")
+        .arg("cat2");
+    cmd.assert().success();
+
+    let prompts = storage.load_prompts().await?;
+    let edited_prompt = prompts.iter().find(|p| p.content == "A prompt to add categories to").unwrap();
+
+    let mut expected_categories = vec!["cat1".to_string(), "cat2".to_string()];
+    expected_categories.sort();
+    let mut actual_categories = edited_prompt.categories.clone().unwrap();
+    actual_categories.sort();
+
+    assert_eq!(
+        actual_categories,
+        expected_categories,
+        "Categories should be added correctly"
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_cli_edit_add_categories_json() -> anyhow::Result<()> {
+    test_cli_edit_add_categories_impl("json").await
+}
+
+#[tokio::test]
+async fn test_cli_edit_add_categories_libsql() -> anyhow::Result<()> {
+    test_cli_edit_add_categories_impl("libsql").await
+}
+
+async fn test_cli_edit_remove_categories_impl(storage_type: &str) -> anyhow::Result<()> {
+    let env = CliTestEnv::new(storage_type)?;
+    let storage: Box<dyn Storage + Send + Sync> = if storage_type == "json" {
+        Box::new(JsonStorage::new(Some(env.storage_path.to_path_buf()))?)
+    } else {
+        Box::new(LibSQLStorage::new(Some(env.storage_path.to_path_buf())).await?)
+    };
+
+    let mut prompt = Prompt::new(
+        "A prompt to remove categories from",
+        None,
+        Some(vec!["cat1".to_string(), "cat2".to_string()]),
+    );
+    storage.save_prompt(&mut prompt).await?;
+
+    // Remove a category
+    let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
+    cmd.arg("--config")
+        .arg(&env.config_path)
+        .arg("edit")
+        .arg("A prompt to remove categories from")
+        .arg("--remove-categories")
+        .arg("cat1");
+    cmd.assert().success();
+
+    let prompts = storage.load_prompts().await?;
+    let edited_prompt = prompts.iter().find(|p| p.content == "A prompt to remove categories from").unwrap();
+
+    let mut expected_categories = vec!["cat2".to_string()];
+    expected_categories.sort();
+    let mut actual_categories = edited_prompt.categories.clone().unwrap();
+    actual_categories.sort();
+
+    assert_eq!(
+        actual_categories,
+        expected_categories,
+        "Categories should be removed correctly"
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_cli_edit_remove_categories_json() -> anyhow::Result<()> {
+    test_cli_edit_remove_categories_impl("json").await
+}
+
+#[tokio::test]
+async fn test_cli_edit_remove_categories_libsql() -> anyhow::Result<()> {
+    test_cli_edit_remove_categories_impl("libsql").await
+}
+
 async fn test_cli_show_with_tag_filter_impl(storage_type: &str) -> anyhow::Result<()> {
     let env = CliTestEnv::new(storage_type)?;
     let storage: Box<dyn Storage + Send + Sync> = if storage_type == "json" {
