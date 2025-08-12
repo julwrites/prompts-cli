@@ -158,9 +158,12 @@ async fn run_cli(cli: Cli) -> Result<(), AppError> {
         let config_builder = match std::env::var("PROMPTS_CLI_CONFIG_PATH") {
             Ok(path) => Config::builder().add_source(File::new(&path, FileFormat::Toml).required(true)),
             Err(_) => {
-                let config_path = dirs::config_dir()
-                    .ok_or_else(|| anyhow::anyhow!("Could not find config directory"))?
-                    .join("prompts-cli/config.toml");
+                let config_path = match std::env::var("PROMPTS_CLI_CONFIG_DIR_FOR_TESTING") {
+                    Ok(path) => PathBuf::from(path).join("prompts-cli/config.toml"),
+                    Err(_) => dirs::config_dir()
+                        .ok_or_else(|| anyhow::anyhow!("Could not find config directory"))?
+                        .join("prompts-cli/config.toml"),
+                };
                 Config::builder()
                     .add_source(File::new(config_path.to_str().unwrap(), FileFormat::Toml).required(false))
             }
