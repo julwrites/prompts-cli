@@ -57,5 +57,6 @@ This document outlines the next steps for the `prompts-cli` project, focusing on
 
 ### **Enhance Test Coverage**
 
--   **Task:** Add integration tests for failure cases identified in `EVAL.md`.
+-   **Task:** Add integration tests for failure cases.
+    -   **Sub-task:** Add tests for editing, deleting, and showing non-existent prompts. (Done)
     -   **Test:** Add tests for the new features as they are developed.

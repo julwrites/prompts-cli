@@ -743,3 +743,83 @@ async fn test_cli_show_with_tag_filter_json() -> anyhow::Result<()> {
 async fn test_cli_show_with_tag_filter_libsql() -> anyhow::Result<()> {
     test_cli_show_with_tag_filter_impl("libsql").await
 }
+
+async fn test_cli_edit_non_existent_prompt_impl(storage_type: &str) -> anyhow::Result<()> {
+    let env = CliTestEnv::new(storage_type)?;
+
+    let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
+    cmd.arg("--config")
+        .arg(&env.config_path)
+        .arg("edit")
+        .arg("a prompt that does not exist")
+        .arg("--text")
+        .arg("new text");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("[]"));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_cli_edit_non_existent_prompt_json() -> anyhow::Result<()> {
+    test_cli_edit_non_existent_prompt_impl("json").await
+}
+
+#[tokio::test]
+async fn test_cli_edit_non_existent_prompt_libsql() -> anyhow::Result<()> {
+    test_cli_edit_non_existent_prompt_impl("libsql").await
+}
+
+async fn test_cli_delete_non_existent_prompt_impl(storage_type: &str) -> anyhow::Result<()> {
+    let env = CliTestEnv::new(storage_type)?;
+
+    let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
+    cmd.arg("--config")
+        .arg(&env.config_path)
+        .arg("delete")
+        .arg("a prompt that does not exist");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("[]"));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_cli_delete_non_existent_prompt_json() -> anyhow::Result<()> {
+    test_cli_delete_non_existent_prompt_impl("json").await
+}
+
+#[tokio::test]
+async fn test_cli_delete_non_existent_prompt_libsql() -> anyhow::Result<()> {
+    test_cli_delete_non_existent_prompt_impl("libsql").await
+}
+
+async fn test_cli_show_non_existent_prompt_impl(storage_type: &str) -> anyhow::Result<()> {
+    let env = CliTestEnv::new(storage_type)?;
+
+    let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
+    cmd.arg("--config")
+        .arg(&env.config_path)
+        .arg("show")
+        .arg("a prompt that does not exist");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("[]"));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_cli_show_non_existent_prompt_json() -> anyhow::Result<()> {
+    test_cli_show_non_existent_prompt_impl("json").await
+}
+
+#[tokio::test]
+async fn test_cli_show_non_existent_prompt_libsql() -> anyhow::Result<()> {
+    test_cli_show_non_existent_prompt_impl("libsql").await
+}
