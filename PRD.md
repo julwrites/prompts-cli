@@ -36,12 +36,20 @@ The CLI will now manage its own storage, using a default location within the use
 | Story ID | User Story | Acceptance Criteria | Priority |
 |---|---|---|---|
 | **US-001** | As a developer, I want the CLI to automatically manage where my prompts are stored so I don't have to think about it. | The CLI uses a default, user-specific directory (e.g., `~/.config/prompts-cli`). The user can override this with a `--config` flag. | P0 |
+| --- | --- | --- | --- |
+| **Implementation Status** | **Partial** | The `storage.rs` module correctly implements a `get_default_storage_dir` function. However, `main.rs` does not use this logic for loading `config.toml`. It only looks for the configuration file in the current working directory, completely ignoring the user's config directory. | |
 | **US-002** | As a developer, I want to add prompts without having to name them, and the tool should handle duplicates. | A prompt's content is hashed to create a unique ID. Adding an existing prompt is a no-op. | P0 |
+| --- | --- | --- | --- |
+| **Implementation Status** | **Partial** | The de-duplication logic is incomplete. `JsonStorage::save_prompt` will simply overwrite an existing prompt file if the hash is the same, and `LibSQLStorage::save_prompt` will likely return a "UNIQUE constraint failed" error. The `add_prompt` function in `Prompts` does not check for existence before saving. | |
 | **US-003** | As a developer, I want to quickly find a prompt even if I only remember parts of it. | Commands that need to identify a prompt use a fuzzy search on the prompt text. | P0 |
+| --- | --- | --- | --- |
+| **Implementation Status** | **Complete** | No gap found. This appears to be implemented correctly. | |
 | **US-004** | As a developer, I want to either provide a prompt directly in a command or have the CLI ask me for it. | Commands like `add`, `show`, `edit`, `delete` support both a one-shot mode (prompt in args) and an interactive mode (reads from stdin). | P1 |
 | **US-005** | As a developer, when my fuzzy search returns multiple results, I want the CLI to show me the options so I can choose the correct one. | The CLI returns a structured JSON list of matching prompts, including their text and hash, for the user to make a specific choice. | P1 |
 | **US-008** | As a developer, I want to use variables in my prompts so I can easily reuse them for different contexts. | The `generate` command supports a `--variable "key=value"` syntax. The prompt text can contain `{{key}}` placeholders. | P1 |
 | **US-009** | As a developer, I want to organize my prompts with tags so I can easily find all prompts related to a specific topic. | The `add` and `edit` commands support a `--tag` flag. The `list` command can filter by tags. | P1 |
+| --- | --- | --- | --- |
+| **Implementation Status** | **Partial** | The feature is incomplete. The `list` command in `main.rs` does not expose any flags for filtering by tag. Furthermore, the `Prompts::show_prompt` API call in `core/mod.rs` does not pass any tags or categories to the underlying `search_prompts` function. | |
 | **US-016** | As a developer, I want to be able to import and export my prompts so I can share them with others or back them up. | The CLI has `import` and `export` commands that can handle a directory of prompt files. | P2 |
 | **US-017** | As a developer, I want to configure the CLI using a configuration file so I don't have to pass the same flags every time. | The CLI reads `~/.config/prompts-cli/config.toml` for default settings. | P2 |
 
@@ -90,6 +98,7 @@ Prompts will be stored as individual JSON files in a dedicated directory. The fi
 - **Core Library API:** The core logic will be exposed as a Rust library, which is a critical dependency for the CLI, TUI, and Tauri frontends. This API needs to be well-defined, stable, and thoroughly documented. Any breaking changes to this API will require coordinated updates across all frontends.
 - **`generate` Command Scope:** The `generate` command's functionality needs to be clarified. If it is intended to interact with external LLMs, this will introduce significant complexity, including network latency, API key management, and asynchronous handling. For v2, it is recommended that `generate` focuses solely on template rendering.
 - **Structured Error Handling:** For scripting and integration with other tools, the CLI must provide predictable error handling. When the `--output json` flag is used, all errors should be returned as a structured JSON object with a clear error message and a unique error code.
+    - **Implementation Status:** **Not Implemented.** The application currently uses `anyhow::Result` and prints human-readable error messages to `stderr`. There is no mechanism for structured JSON error output.
 
 ## Testing Strategy
 

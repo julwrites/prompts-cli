@@ -54,8 +54,8 @@ async fn test_cli_import_export() -> anyhow::Result<()> {
 
     let storage_source =
         prompts_cli::storage::JsonStorage::new(Some(source_dir.path().to_path_buf()))?;
-    storage_source.save_prompt(&mut prompt1)?;
-    storage_source.save_prompt(&mut prompt2)?;
+    storage_source.save_prompt(&mut prompt1).await?;
+    storage_source.save_prompt(&mut prompt2).await?;
 
     // Test import
     let mut cmd = Command::cargo_bin(r#"prompts-cli"#)?;
@@ -70,7 +70,7 @@ async fn test_cli_import_export() -> anyhow::Result<()> {
 
     // Verify imported prompts
     let storage_dest = prompts_cli::storage::JsonStorage::new(Some(env.storage_path.clone()))?;
-    let loaded_prompts = storage_dest.load_prompts()?;
+    let loaded_prompts = storage_dest.load_prompts().await?;
     assert_eq!(loaded_prompts.len(), 2);
     assert!(loaded_prompts
         .iter()
